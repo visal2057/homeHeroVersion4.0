@@ -5,17 +5,25 @@ const path = require('path');
 const { pool, testConnection } = require('./config/db');
 
 // Route files
-const authRoutes        = require('./routes/auth');
+const authRoutes         = require('./routes/auth');
 const workerRoutes      = require('./routes/worker');
 const usersRoutes       = require('./routes/users');
 const bookingsRoutes    = require('./routes/bookings');
 const announcementsRoutes = require('./routes/announcements');
+const membershipRoutes  = require('./routes/membership'); // Added membership route file reference
 
 const { getUserProfile, getAllClients, getAllProviders, getDashboardStats, registerClient, registerProvider } = require('./controllers/AuthController');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+
+
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    process.env.CLIENT_URL // This reads your string variable cleanly from above
+].filter(Boolean);
 
 // ==================== MIDDLEWARE ====================
 app.use(cors({
@@ -32,6 +40,7 @@ app.use('/api/worker',        workerRoutes);
 app.use('/api/admin/users',   usersRoutes);
 app.use('/api/bookings',      bookingsRoutes);
 app.use('/api/announcements', announcementsRoutes);
+app.use('/api/membership',    membershipRoutes); // Mounted membership endpoints cleanly to the core API
 
 // ==================== ADMIN STANDALONE ROUTES ====================
 app.get('/api/auth/user/:userId',           getUserProfile);
