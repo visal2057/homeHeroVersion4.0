@@ -1,14 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom'; // Import Link to connect your routing
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom'; // Import useNavigate for handling redirect delays
+import { GlobalToast } from '../../components/GlobalToast'; // Named import as requested
 
 function SystemAdminDashboard() {
+  const navigate = useNavigate();
+
   // State for dynamic admin profile data
   const [adminName, setAdminName] = useState('System Admin');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // State for PostgreSQL records
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // State to control your global notification alert popup
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   // Hook to pull data automatically from your Node server
   useEffect(() => {
@@ -32,12 +39,39 @@ function SystemAdminDashboard() {
       });
   }, []);
 
+  // Custom handler to run smooth toast logic before routing back to sign in
+  const handleLogout = () => {
+    // 1. Clear any local sessions
+    localStorage.removeItem('adminUsername');
+
+    // 2. Mount the toast AND make it visible to fire the Tailwind animation
+    setToast({
+      show: true,
+      isVisible: true,
+      message: 'Logging out...',
+      type: 'success'
+    });
+
+    // 3. Start fade out animation slightly before routing
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, isVisible: false }));
+    }, 2200);
+
+    // 4. Safely route back to the login screen
+    setTimeout(() => {
+      navigate('/login');
+    }, 2500);
+  };
+
   const handleResolve = (id) => {
     alert(`Resolving complaint ticket #${id} directly inside PostgreSQL storage...`);
   };
 
   return (
-    <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen font-sans antialiased">
+    <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen font-sans antialiased flex flex-col relative">
+      {/* Global Alert Notification Popup Element */}
+      <GlobalToast toast={toast} />
+
       {/* External CSS Font & Icon Embeds */}
       <div
         dangerouslySetInnerHTML={{
@@ -51,75 +85,100 @@ function SystemAdminDashboard() {
         }}
       />
 
-      {/* Side Navigation Rail */}
-      <aside className="fixed left-0 top-0 h-full w-64 z-50 p-6 flex flex-col gap-4 bg-white border-r border-slate-200 shadow-sm">
-        <div className="flex flex-col mb-6 px-4">
-          <span className="text-3xl font-bold text-[#006948]">HomeHero</span>
-          <span className="text-sm font-semibold text-slate-500">System Admin Console</span>
-        </div>
-        
-        <nav className="flex-grow flex flex-col gap-1">
-          {/* Active Dashboard Link */}
-          <Link className="flex items-center gap-3 bg-emerald-50 text-[#006948] rounded-lg px-4 py-3 font-bold" to="/admin/system">
-            <span className="material-symbols-outlined sidebar-active">dashboard</span>
-            <span className="text-sm font-semibold">Dashboard</span>
-          </Link>
-          
-          {/* Bookings Link - Connected to your Bookings Management page */}
-          <Link className="flex items-center gap-3 text-slate-600 hover:bg-slate-100 transition-all px-4 py-3 rounded-lg" to="/admin/bookings">
-            <span className="material-symbols-outlined">calendar_today</span>
-            <span className="text-sm font-semibold">Bookings</span>
-          </Link>
-          
-          {/* User Management Link */}
-          <Link className="flex items-center gap-3 text-slate-600 hover:bg-slate-100 transition-all px-4 py-3 rounded-lg" to="/admin/users">
-            <span className="material-symbols-outlined">engineering</span>
-            <span className="text-sm font-semibold">User management</span>
-          </Link>
-          
-          {/* Announcements Link */}
-          <Link className="flex items-center gap-3 text-slate-600 hover:bg-slate-100 transition-all px-4 py-3 rounded-lg" to="/admin/announcements">
-            <span className="material-symbols-outlined">campaign</span>
-            <span className="text-sm font-semibold">Announcements</span>
-          </Link>
-        </nav>
-        
-        <div className="mt-auto border-t border-slate-200 pt-4 flex flex-col gap-1">
-          {/* Logout Link */}
-          <Link className="flex items-center gap-3 text-red-600 hover:bg-red-50 px-4 py-3 rounded-lg transition-colors" to="/login">
-            <span className="material-symbols-outlined">logout</span>
-            <span className="text-sm font-semibold">Log Out</span>
-          </Link>
-        </div>
-      </aside>
+      {/* --- ADMINISTRATIVE TOP NAVIGATION BAR --- */}
+      <header className="bg-[#064E3B] text-white sticky top-0 z-40 shadow-md">
+        <div className="flex justify-between items-center w-full px-6 py-3 max-w-[1280px] mx-auto">
+          <div className="flex items-center gap-4">
+            <span className="text-lg font-black tracking-tight text-white">HomeHero</span>
+            <div className="h-4 w-[1px] bg-emerald-700 hidden sm:block"></div>
+            <span className="text-xs font-bold tracking-wider text-slate-200 uppercase hidden sm:block">
+              System Admin Console
+            </span>
+          </div>
 
-      {/* Top Bar Header Area */}
-      <header className="fixed top-0 right-0 w-[calc(100%-250px)] z-40 bg-[#f7f9fb]/80 backdrop-blur-md shadow-sm flex items-center px-8 py-2 h-16 justify-end">
-        <div className="flex items-center gap-4">
-          <button className="material-symbols-outlined text-[#005c3a] hover:bg-[#e6e8ea] p-2 rounded-full transition-colors text-2xl font-medium">
-            notifications
-          </button>
-          
-          {/* Vertical Divider line */}
-          <div className="w-[1px] h-8 bg-slate-300/80 mx-1"></div>
-
-          <div className="flex items-center gap-3 cursor-pointer hover:bg-[#e6e8ea] p-1 rounded-lg transition-colors">
-            <div className="flex flex-col items-end leading-tight">
-              <span className="text-base font-bold text-[#191c1e] tracking-tight">{adminName}</span>
-              <span className="text-sm text-slate-500 font-medium">System Admin</span>
-            </div>
+          <nav className="hidden md:flex items-center gap-1">
+            {/* Dashboard Link - ACTIVE */}
+            <Link
+              to="/admin/system"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-emerald-500 text-white shadow-sm"
+            >
+              Dashboard
+            </Link>
             
-            <div className="w-10 h-10 rounded-full border-2 border-[#005c3a] flex items-center justify-center bg-white text-[#005c3a]">
-              <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                account_circle
-              </span>
+            {/* Bookings Link */}
+            <Link
+              to="/admin/bookings"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-100 hover:text-white hover:bg-emerald-800/50"
+            >
+              Bookings
+            </Link>
+            
+            {/* User Management Link */}
+            <Link
+              to="/admin/users"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-100 hover:text-white hover:bg-emerald-800/50"
+            >
+              User management
+            </Link>
+            
+            {/* Announcements Link */}
+            <Link
+              to="/admin/announcements"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-100 hover:text-white hover:bg-emerald-800/50"
+            >
+              Announcements
+            </Link>
+          </nav>
+          
+          <div className="flex items-center gap-3">
+            <button className="p-2 rounded-lg text-white hover:bg-emerald-800 transition-colors relative">
+              <span className="material-symbols-outlined text-xl">notifications</span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+            </button>
+            
+            <div className="h-6 w-[1px] bg-emerald-800 mx-1"></div>
+            
+            <div className="relative">
+              <button 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-emerald-800 transition-all focus:outline-none"
+              >
+                <div className="w-7 h-7 rounded-lg border border-emerald-400 flex items-center justify-center bg-white text-[#006948]">
+                  <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    account_circle
+                  </span>
+                </div>
+                <div className="hidden sm:block text-left max-w-[120px]">
+                  <p className="text-xs font-bold text-white truncate leading-tight">{adminName}</p>
+                </div>
+                <span className="material-symbols-outlined text-emerald-200 text-sm">keyboard_arrow_down</span>
+              </button>
+
+              {isDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)}></div>
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-20 text-[#191c1e]">
+                    <div className="px-3 py-2 border-b border-slate-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Account:</p>
+                      <p className="text-xs font-semibold text-slate-700 truncate mt-0.5">{adminName}</p>
+                    </div>
+                    <button 
+                      onClick={() => { setIsDropdownOpen(false); handleLogout(); }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors text-left"
+                    >
+                      <span className="material-symbols-outlined text-base">logout</span>
+                      <span>Log out</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Container Workspace */}
-      <main className="ml-64 pt-16 min-h-screen p-8">
+      {/* --- MAIN PAGE CONTENT (Stretched to match full window layout) --- */}
+      <main className="flex-grow w-full max-w-[1280px] mx-auto px-6 py-8">
         <div className="p-md space-y-md">
           {/* KPI Overview Grid */}
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-md">

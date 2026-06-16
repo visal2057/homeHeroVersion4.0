@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {GlobalToast} from '../../components/GlobalToast';
 
-const API_BASE_URL = 'http://localhost:5000/api/announcements';
+const API_BASE_URL = 'http://localhost:5000/api/admin/announcements';
 
 const AdminAnnouncements = () => {
-  // --- Core State Management ---
+  const navigate = useNavigate();
   const [announcements, setAnnouncements] = useState([]);
   const [filteredAnnouncements, setFilteredAnnouncements] = useState([]);
   const [activeTab, setActiveTab] = useState('All');
@@ -13,13 +14,12 @@ const AdminAnnouncements = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [formSubmitLoading, setFormSubmitLoading] = useState(false);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
-  // Form Visibility Toggles
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
 
-  // Consolidated Form Fields (New & Edit shared fields)
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [targetAudience, setTargetAudience] = useState('ALL');
@@ -27,31 +27,47 @@ const AdminAnnouncements = () => {
   const [scheduledDateTime, setScheduledDateTime] = useState('');
   const [editStatus, setEditStatus] = useState('ACTIVE');
 
-  // Custom Alert System State
-  const [toast, setToast] = useState({ show: false, isVisible: false, type: 'success', message: '', isProcessing: false });
+  // Step 2: Define Multi-Stage State Structure tracking mounting and CSS animation states
+  const [toast, setToast] = useState({ 
+    show: false, 
+    isVisible: false, 
+    type: 'success', 
+    message: '' 
+  });
 
-  // --- Notification Alert System ---
-  const triggerAlert = (type, msg, showSpinner = false, callback = null) => {
-    setToast({ show: true, isVisible: false, type, message: msg, isProcessing: showSpinner });
-    setTimeout(() => setToast(prev => ({ ...prev, isVisible: true })), 10);
+  // Universal Call Trigger Rule matching the pipeline instructions exactly
+  const triggerAlert = (type, msg, duration = 2500, callback = null) => {
+    // 1. Mount to layout DOM immediately using the correct dynamic message text string
+    setToast({ show: true, isVisible: false, type, message: msg });
+    
+    // 2. Micro-task delay: tricks rendering engine to safely apply slide/fade transitions
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, isVisible: true }));
+    }, 20);
 
-    if (type === 'success') {
+    // 3. Delayed Teardown Pipeline
+    setTimeout(() => {
+      // Start exit transition animations
+      setToast(prev => ({ ...prev, isVisible: false }));
+      
+      // Completely wipe state and unmount after CSS rules finish transition (300ms)
       setTimeout(() => {
-        setToast(prev => ({ ...prev, isVisible: false }));
-        setTimeout(() => {
-          setToast({ show: false, isVisible: false, type: 'success', message: '', isProcessing: false });
-          if (callback) callback();
-        }, 300);
-      }, 2000);
-    }
+        setToast({ show: false, isVisible: false, type: 'success', message: '' });
+        if (callback) callback();
+      }, 300);
+    }, duration);
   };
 
-  const dismissErrorAlert = () => {
-    setToast(prev => ({ ...prev, isVisible: false }));
-    setTimeout(() => setToast({ show: false, isVisible: false, type: 'success', message: '', isProcessing: false }), 300);
+  // Custom log out handler mapped cleanly to your pipeline rule
+  const handleLogout = (e) => {
+    e.preventDefault();
+    setIsProfileDropdownOpen(false);
+    
+    triggerAlert('success', 'Logging out...', 2000, () => {
+      navigate('/login');
+    });
   };
 
-  // Close dropdown menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (!e.target.closest('[data-dropdown-container]')) {
@@ -62,7 +78,6 @@ const AdminAnnouncements = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // --- API Handlers ---
   const fetchAnnouncementsData = async () => {
     try {
       setLoading(true);
@@ -83,7 +98,6 @@ const AdminAnnouncements = () => {
     fetchAnnouncementsData();
   }, []);
 
-  // Creation Submissions
   const handleCreateAnnouncement = async (e) => {
     e.preventDefault();
     if (!title.trim() || !message.trim()) return triggerAlert('error', 'Please fill out both Title and Message fields.');
@@ -107,7 +121,7 @@ const AdminAnnouncements = () => {
       if (!response.ok) throw new Error('Failed to save announcement row.');
 
       const outputMsg = isScheduled ? 'Success! Announcement scheduled cleanly.' : 'Success! Announcement broadcasted successfully.';
-      triggerAlert('success', outputMsg, true, async () => {
+      triggerAlert('success', outputMsg, 2000, async () => {
         resetFormFields();
         setIsFormOpen(false);
         await fetchAnnouncementsData();
@@ -119,7 +133,6 @@ const AdminAnnouncements = () => {
     }
   };
 
-  // Modification Submissions
   const handleUpdateAnnouncement = async (e) => {
     e.preventDefault();
     if (!title.trim() || !message.trim()) return triggerAlert('error', 'Please fill out both Title and Message fields.');
@@ -142,7 +155,7 @@ const AdminAnnouncements = () => {
       });
       if (!response.ok) throw new Error('Failed to update the notification.');
 
-      triggerAlert('success', 'Success! System notification record adjusted cleanly.', true, async () => {
+      triggerAlert('success', 'Success! System notification record adjusted cleanly.', 2000, async () => {
         setIsEditOpen(false);
         setSelectedAnnouncement(null);
         resetFormFields();
@@ -155,7 +168,6 @@ const AdminAnnouncements = () => {
     }
   };
 
-  // Populate form input boxes for modification workflow
   const loadEditWorkspace = (announcement) => {
     setSelectedAnnouncement(announcement);
     setTitle(announcement.title || '');
@@ -183,7 +195,6 @@ const AdminAnnouncements = () => {
     setEditStatus('ACTIVE');
   };
 
-  // Search filter implementation
   useEffect(() => {
     let result = announcements;
     if (activeTab !== 'All') {
@@ -192,7 +203,7 @@ const AdminAnnouncements = () => {
     if (searchTerm.trim() !== '') {
       const term = searchTerm.toLowerCase();
       result = result.filter(a => 
-        (a.id || '').toString().includes(term) ||
+        (a.id ?? '').toString().includes(term) ||
         (a.title || '').toLowerCase().includes(term) ||
         (a.message || '').toLowerCase().includes(term) ||
         (a.target_audience || '').toLowerCase().includes(term)
@@ -201,7 +212,6 @@ const AdminAnnouncements = () => {
     setFilteredAnnouncements(result);
   }, [activeTab, searchTerm, announcements]);
 
-  // Style Utilities
   const getAudienceClass = (aud) => {
     const a = (aud || '').toUpperCase();
     if (a === 'ALL') return 'bg-purple-100 text-purple-800 border border-purple-200';
@@ -225,7 +235,7 @@ const AdminAnnouncements = () => {
   };
 
   return (
-    <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen font-sans antialiased relative">
+    <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen font-sans antialiased flex flex-col relative">
       <div dangerouslySetInnerHTML={{ __html: `
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
         <style>
@@ -234,83 +244,84 @@ const AdminAnnouncements = () => {
         </style>` 
       }} />
 
-      {/* --- TOAST LAYER --- */}
-      {toast.show && (
-        <div className={`fixed top-5 left-1/2 transform -translate-x-1/2 z-[10000] w-max min-w-[280px] max-w-[90vw] p-4 rounded-xl shadow-lg border flex items-center gap-3 transition-all duration-300 ease-out select-none ${toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-900'} ${toast.isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-4 scale-95 pointer-events-none'}`}>
-          <span className={`w-2.5 h-2.5 rounded-full shrink-0 animate-pulse ${toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-          <span className="text-sm font-semibold tracking-wide whitespace-nowrap">{toast.message}</span>
-          {toast.type === 'success' && toast.isProcessing && (
-            <span className="w-4 h-4 rounded-full border-2 border-emerald-800/20 border-t-emerald-600 animate-spin shrink-0 ml-1"></span>
-          )}
-          {toast.type === 'error' && (
-            <button type="button" onClick={dismissErrorAlert} className="ml-auto text-rose-400 hover:text-rose-700 p-0.5 rounded-full transition-colors">
-              <span className="material-symbols-outlined text-base font-bold">close</span>
+      {/* Step 3: Single-point rendering layout integration hook using GlobalToast */}
+      <GlobalToast toast={toast} />
+
+      {/* --- ADMINISTRATIVE TOP NAVIGATION BAR --- */}
+      <header className="bg-[#064E3B] text-white sticky top-0 z-40 shadow-md">
+        <div className="flex justify-between items-center w-full px-6 py-3 max-w-[1280px] mx-auto">
+          <div className="flex items-center gap-4">
+            <span className="text-lg font-black tracking-tight text-white">HomeHero</span>
+            <div className="h-4 w-[1px] bg-emerald-700 hidden sm:block"></div>
+            <span className="text-xs font-bold tracking-wider text-slate-200 uppercase hidden sm:block">
+              System Admin Console
+            </span>
+          </div>
+
+          <nav className="hidden md:flex items-center gap-1">
+            <Link to="/admin/system" className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-100 hover:text-white hover:bg-emerald-800/50">
+              Dashboard
+            </Link>
+            <Link to="/admin/bookings" className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-100 hover:text-white hover:bg-emerald-800/50">
+              Bookings
+            </Link>
+            <Link to="/admin/users" className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-100 hover:text-white hover:bg-emerald-800/50">
+              User management
+            </Link>
+            <Link to="/admin/announcements" className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-emerald-500 text-white shadow-sm">
+              Announcements
+            </Link>
+          </nav>
+          
+          <div className="flex items-center gap-3">
+            <button className="p-2 rounded-lg text-white hover:bg-emerald-800 transition-colors relative">
+              <span className="material-symbols-outlined text-xl">notifications</span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-          )}
-        </div>
-      )}
+            
+            <div className="h-6 w-[1px] bg-emerald-800 mx-1"></div>
+            
+            <div className="relative">
+              <button 
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-emerald-800 transition-all focus:outline-none"
+              >
+                <div className="w-7 h-7 rounded-lg border border-emerald-400 flex items-center justify-center bg-white text-[#006948]">
+                  <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    account_circle
+                  </span>
+                </div>
+                <div className="hidden sm:block text-left max-w-[120px]">
+                  <p className="text-xs font-bold text-white truncate leading-tight">sys_admin</p>
+                </div>
+                <span className="material-symbols-outlined text-emerald-200 text-sm">keyboard_arrow_down</span>
+              </button>
 
-      {/* Identical Side Navigation Rail */}
-      <aside className="fixed left-0 top-0 h-full w-64 z-50 p-6 flex flex-col gap-4 bg-white border-r border-slate-200 shadow-sm">
-        <div className="flex flex-col mb-6 px-4">
-          <span className="text-3xl font-bold text-[#006948]">HomeHero</span>
-          <span className="text-sm font-semibold text-slate-500">System Admin Console</span>
-        </div>
-        
-        <nav className="flex-grow flex flex-col gap-1">
-          {/* Dashboard Link */}
-          <Link className="flex items-center gap-3 text-slate-600 hover:bg-slate-100 transition-all px-4 py-3 rounded-lg" to="/admin/system">
-            <span className="material-symbols-outlined">dashboard</span>
-            <span className="text-sm font-semibold">Dashboard</span>
-          </Link>
-          
-          {/* Bookings Link */}
-          <Link className="flex items-center gap-3 text-slate-600 hover:bg-slate-100 transition-all px-4 py-3 rounded-lg" to="/admin/bookings">
-            <span className="material-symbols-outlined">calendar_today</span>
-            <span className="text-sm font-semibold">Bookings</span>
-          </Link>
-          
-          {/* User Management Link */}
-          <Link className="flex items-center gap-3 text-slate-600 hover:bg-slate-100 transition-all px-4 py-3 rounded-lg" to="/admin/users">
-            <span className="material-symbols-outlined">engineering</span>
-            <span className="text-sm font-semibold">User management</span>
-          </Link>
-          
-          {/* Active Announcements Link */}
-          <Link className="flex items-center gap-3 bg-emerald-50 text-[#006948] rounded-lg px-4 py-3 font-bold" to="/admin/announcements">
-            <span className="material-symbols-outlined sidebar-active">campaign</span>
-            <span className="text-sm font-semibold">Announcements</span>
-          </Link>
-        </nav>
-        
-        <div className="mt-auto border-t border-slate-200 pt-4 flex flex-col gap-1">
-          {/* Logout Link */}
-          <Link className="flex items-center gap-3 text-red-600 hover:bg-red-50 px-4 py-3 rounded-lg transition-colors" to="/login">
-            <span className="material-symbols-outlined">logout</span>
-            <span className="text-sm font-semibold">Log Out</span>
-          </Link>
-        </div>
-      </aside>
-
-      {/* --- HEADER --- */}
-      <header className="fixed top-0 right-0 w-[calc(100%-256px)] z-40 bg-[#f7f9fb]/80 backdrop-blur-md shadow-sm flex items-center px-8 py-2 h-16 justify-end">
-        <div className="flex items-center gap-4">
-          <button className="material-symbols-outlined text-[#005c3a] hover:bg-[#e6e8ea] p-2 rounded-full text-2xl font-medium">notifications</button>
-          <div className="w-[1px] h-8 bg-slate-300/80 mx-1"></div>
-          <div className="flex items-center gap-3 cursor-pointer hover:bg-[#e6e8ea] p-1 rounded-lg">
-            <div className="flex flex-col items-end leading-tight">
-              <span className="text-base font-bold text-[#191c1e]">sys_admin</span>
-              <span className="text-sm text-slate-500">System Admin</span>
-            </div>
-            <div className="w-10 h-10 rounded-full border-2 border-[#005c3a] flex items-center justify-center bg-white text-[#005c3a]">
-              <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>account_circle</span>
+              {isProfileDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsProfileDropdownOpen(false)}></div>
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-20 text-[#191c1e]">
+                    <div className="px-3 py-2 border-b border-slate-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Account:</p>
+                      <p className="text-xs font-semibold text-slate-700 truncate mt-0.5">sys_admin</p>
+                    </div>
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors text-left"
+                    >
+                      <span className="material-symbols-outlined text-base">logout</span>
+                      <span>Log out</span>
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* --- MAIN INTERFACE CONTENT --- */}
-      <main className="ml-64 pt-16 min-h-screen p-8">
+      {/* --- MAIN Container Workspace --- */}
+      <main className="flex-grow w-full max-w-[1280px] mx-auto px-6 py-8">
         <header className="flex flex-col pt-6 mb-6 gap-4">
           <div>
             <h1 className="text-4xl font-bold tracking-tight text-[#191c1e]">Announcements</h1>
@@ -324,7 +335,6 @@ const AdminAnnouncements = () => {
           </div>
         </header>
 
-        {/* --- CREATION FORM ACCORDION --- */}
         {isFormOpen && (
           <section className="bg-white p-8 rounded-xl shadow-sm border border-slate-200/80 mb-8">
             <div className="flex items-center gap-2 mb-6 border-b border-slate-100 pb-3">
@@ -370,7 +380,6 @@ const AdminAnnouncements = () => {
           </section>
         )}
 
-        {/* --- LIVE DATA TABLE WORKSPACE --- */}
         {loading ? (
           <div className="text-center py-12 text-[#3d4a42] font-semibold">Pulling announcements...</div>
         ) : error ? (
@@ -390,7 +399,7 @@ const AdminAnnouncements = () => {
                 <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Filter announcements..." className="w-full pl-9 pr-4 py-2 bg-white rounded-lg border border-slate-200 text-sm outline-none" />
               </div>
             </div>
-            <div className="w-full overflow-visible">
+            <div className="w-full overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-[#f2f4f6] text-[#3d4a42] uppercase text-[10px] font-bold tracking-widest">
                   <tr>
@@ -407,8 +416,8 @@ const AdminAnnouncements = () => {
                     <tr><td colSpan="6" className="text-center py-12 text-sm text-slate-400">No active records matched this query.</td></tr>
                   ) : (
                     filteredAnnouncements.map((item, idx) => (
-                      <tr key={item.id} className="hover:bg-[#f2f4f6]/30 transition-colors">
-                        <td className="px-6 py-5 text-sm font-semibold text-[#006948] font-mono">#{item.id.toString().padStart(3, '0')}</td>
+                      <tr key={item.id || idx} className="hover:bg-[#f2f4f6]/30 transition-colors">
+                        <td className="px-6 py-5 text-sm font-semibold text-[#006948] font-mono">#{item.id ? item.id.toString().padStart(3, '0') : '000'}</td>
                         <td className="px-6 py-5">
                           <div className="flex flex-col">
                             <span className="text-sm font-bold text-[#191c1e] line-clamp-1">{item.title}</span>
@@ -418,7 +427,7 @@ const AdminAnnouncements = () => {
                         <td className="px-6 py-5 whitespace-nowrap"><span className={`px-2.5 py-0.5 rounded text-xs uppercase font-bold ${getAudienceClass(item.target_audience)}`}>{item.target_audience}</span></td>
                         <td className="px-6 py-5 whitespace-nowrap"><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${getStatusClass(item.status)}`}>{item.status}</span></td>
                         <td className="px-6 py-5 text-sm text-slate-500 whitespace-nowrap">{formatDisplayDateTime(item.published_date)}</td>
-                        <td className="px-6 py-5 text-right whitespace-nowrap relative z-10">
+                        <td className="px-6 py-5 text-right whitespace-nowrap relative">
                           <button onClick={() => setActiveDropdownId(activeDropdownId === item.id ? null : item.id)} className="text-slate-400 hover:text-slate-600 p-1.5"><span className="material-symbols-outlined text-lg">more_vert</span></button>
                           {activeDropdownId === item.id && (
                             <div data-dropdown-container className={`absolute right-6 w-44 bg-white shadow-xl border border-slate-200 rounded-xl overflow-hidden z-50 ${filteredAnnouncements.length <= 2 || idx < 2 ? 'top-full' : 'bottom-full'}`}>
@@ -440,7 +449,7 @@ const AdminAnnouncements = () => {
         )}
       </main>
 
-      {/* --- EDIT ANNOUNCEMENT POPUP OVERLAY MODAL --- */}
+      {/* --- EDIT MODAL OVERLAY --- */}
       {isEditOpen && selectedAnnouncement && (
         <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
           <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-lg sm:min-w-[480px] flex-shrink-0 overflow-hidden">
@@ -493,7 +502,7 @@ const AdminAnnouncements = () => {
               <footer className="flex justify-end gap-2 border-t border-slate-100 pt-4 mt-2">
                 <button type="button" onClick={() => { setIsEditOpen(false); setSelectedAnnouncement(null); }} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-50">Cancel</button>
                 <button type="submit" disabled={formSubmitLoading} className="px-4 py-2 bg-[#006948] text-white rounded-lg text-sm font-bold hover:bg-[#005c3a] disabled:opacity-50">
-                  {formSubmitLoading ? 'Saving...' : 'Save Changes'}
+                  Save Changes
                 </button>
               </footer>
             </form>

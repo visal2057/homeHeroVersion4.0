@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import './index.css'
-import App from './App'
+import App from './App.jsx'
 
 // Replace with your actual Google Client ID from https://console.cloud.google.com/
 // If not configured, Google login button will gracefully show an error toast

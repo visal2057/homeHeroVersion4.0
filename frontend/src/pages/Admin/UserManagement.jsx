@@ -1,21 +1,15 @@
-// =========================================================================
-// SECTION 1: LIBRARIES & CONFIGURATION HOOKS
-// =========================================================================
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
 const UserManagement = () => {
-  // =========================================================================
-  // SECTION 2: COMPONENT STATE HOOKS
-  // =========================================================================
   const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
   const [activeTab, setActiveTab] = useState('All Users');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [activeDropdownUserId, setActiveDropdownUserId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
   const dropdownRef = useRef(null);
 
@@ -30,35 +24,31 @@ const UserManagement = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // =========================================================================
-  // SECTION 3: FRONTEND API FETCH CALLS (TALKING TO THE BACKEND SERVER)
-  // =========================================================================
-  const fetchAllUsersData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch('http://localhost:5000/api/admin/users');
-      
-      if (!response.ok) {
-        throw new Error('Failed to retrieve system users from server');
-      }
-      const data = await response.json();
-      setUsers(data);
-      setFilteredUsers(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+  const fetchAllUsersData = useCallback(async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    const response = await fetch('http://localhost:5000/api/admin/users');
+    
+    if (!response.ok) {
+      throw new Error('Failed to retrieve system users from server');
     }
-  };
+    const data = await response.json();
+    setUsers(data);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+}, []); // An empty array here keeps the function completely stable
 
-  useEffect(() => {
-    fetchAllUsersData();
-  }, []);
+// 3. Your useEffect hook stays clean and safe
+useEffect(() => {
+  (async () => {
+    await fetchAllUsersData();
+  })();
+}, [fetchAllUsersData]); // The linter is happy now because fetchAllUsersData never changes unexpectedly
 
-  // =========================================================================
-  // SECTION 4: ADMINISTRATIVE API WORKFLOWS (BAN OPERATIONS)
-  // =========================================================================
   const handleBanUserAction = async (userid, duration) => {
     try {
       const response = await fetch('http://localhost:5000/api/admin/users/ban', {
@@ -81,32 +71,26 @@ const UserManagement = () => {
     }
   };
 
-  // =========================================================================
-  // SECTION 5: LIVE TEXT FILTER MATCHING LOGIC WITH NAV TABS
-  // =========================================================================
-  useEffect(() => {
-    let result = users;
+  // --- RECONCILED FILTER LOGIC (Calculated directly inline during rendering) ---
+  let filteredUsers = users;
 
-    // 1. Filter by Role Distribution Tabs
-    if (activeTab !== 'All Users') {
-      result = result.filter(
-        (u) => u.role && u.role.toLowerCase() === activeTab.toLowerCase()
-      );
-    }
+  // 1. Filter by Role Distribution Tabs
+  if (activeTab !== 'All Users') {
+    filteredUsers = filteredUsers.filter(
+      (u) => u.role && u.role.toLowerCase() === activeTab.toLowerCase()
+    );
+  }
 
-    // 2. Filter by Search Query Fields (Unique Token, Name, or Email Address)
-    if (searchTerm.trim() !== '') {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(
-        (u) =>
-          (u.unique_token || '').toLowerCase().includes(term) ||
-          (u.name || '').toLowerCase().includes(term) ||
-          (u.email || '').toLowerCase().includes(term)
-      );
-    }
-
-    setFilteredUsers(result);
-  }, [activeTab, searchTerm, users]);
+  // 2. Filter by Search Query Fields (Unique Token, Name, or Email Address)
+  if (searchTerm.trim() !== '') {
+    const term = searchTerm.toLowerCase();
+    filteredUsers = filteredUsers.filter(
+      (u) =>
+        (u.unique_token || '').toLowerCase().includes(term) ||
+        (u.name || '').toLowerCase().includes(term) ||
+        (u.email || '').toLowerCase().includes(term)
+    );
+  }
 
   // Helper helper badge styling function for corresponding user types
   const getUserTypeClass = (role) => {
@@ -130,78 +114,116 @@ const UserManagement = () => {
   };
 
   return (
-    <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen font-sans antialiased">
+    <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen font-sans antialiased flex flex-col relative">
+      {/* External CSS Font & Icon Embeds */}
+      <div
+        dangerouslySetInnerHTML={{
+          __html: `
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+            <style>
+              .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+              .sidebar-active { font-variation-settings: 'FILL' 1; }
+            </style>
+          `,
+        }}
+      />
 
-      {/* Side Navigation Rail */}
-      <aside className="fixed left-0 top-0 h-full w-64 z-50 p-6 flex flex-col gap-4 bg-white border-r border-slate-200 shadow-sm">
-        <div className="flex flex-col mb-6 px-4">
-          <span className="text-3xl font-bold text-[#006948]">HomeHero</span>
-          <span className="text-sm font-semibold text-slate-500">System Admin Console</span>
-        </div>
-        
-        <nav className="flex-grow flex flex-col gap-1">
-          {/* Dashboard Link */}
-          <Link className="flex items-center gap-3 text-slate-600 hover:bg-slate-100 transition-all px-4 py-3 rounded-lg" to="/admin/system">
-            <span className="material-symbols-outlined">dashboard</span>
-            <span className="text-sm font-semibold">Dashboard</span>
-          </Link>
-          
-          {/* Bookings Link */}
-          <Link className="flex items-center gap-3 text-slate-600 hover:bg-slate-100 transition-all px-4 py-3 rounded-lg" to="/admin/bookings">
-            <span className="material-symbols-outlined">calendar_today</span>
-            <span className="text-sm font-semibold">Bookings</span>
-          </Link>
-          
-          {/* Active User Management Link */}
-          <Link className="flex items-center gap-3 bg-emerald-50 text-[#006948] rounded-lg px-4 py-3 font-bold" to="/admin/users">
-            <span className="material-symbols-outlined sidebar-active">engineering</span>
-            <span className="text-sm font-semibold">User management</span>
-          </Link>
-          
-          {/* Announcements Link */}
-          <Link className="flex items-center gap-3 text-slate-600 hover:bg-slate-100 transition-all px-4 py-3 rounded-lg" to="/admin/announcements">
-            <span className="material-symbols-outlined">campaign</span>
-            <span className="text-sm font-semibold">Announcements</span>
-          </Link>
-        </nav>
-        
-        <div className="mt-auto border-t border-slate-200 pt-4 flex flex-col gap-1">
-          {/* Logout Link */}
-          <Link className="flex items-center gap-3 text-red-600 hover:bg-red-50 px-4 py-3 rounded-lg transition-colors" to="/login">
-            <span className="material-symbols-outlined">logout</span>
-            <span className="text-sm font-semibold">Log Out</span>
-          </Link>
-        </div>
-      </aside>
+      {/* --- ADMINISTRATIVE TOP NAVIGATION BAR --- */}
+      <header className="bg-[#064E3B] text-white sticky top-0 z-40 shadow-md">
+        <div className="flex justify-between items-center w-full px-6 py-3 max-w-[1280px] mx-auto">
+          <div className="flex items-center gap-4">
+            <span className="text-lg font-black tracking-tight text-white">HomeHero</span>
+            <div className="h-4 w-[1px] bg-emerald-700 hidden sm:block"></div>
+            <span className="text-xs font-bold tracking-wider text-slate-200 uppercase hidden sm:block">
+              System Admin Console
+            </span>
+          </div>
 
-      {/* Top Bar Header Area */}
-      <header className="fixed top-0 right-0 w-[calc(100%-250px)] z-40 bg-[#f7f9fb]/80 backdrop-blur-md shadow-sm flex items-center px-8 py-2 h-16 justify-end">
-        <div className="flex items-center gap-4">
-          <button className="material-symbols-outlined text-[#005c3a] hover:bg-[#e6e8ea] p-2 rounded-full transition-colors text-2xl font-medium">
-            notifications
-          </button>
-          
-          {/* Vertical Divider line */}
-          <div className="w-[1px] h-8 bg-slate-300/80 mx-1"></div>
-
-          <div className="flex items-center gap-3 cursor-pointer hover:bg-[#e6e8ea] p-1 rounded-lg transition-colors">
-            <div className="flex flex-col items-end leading-tight">
-              <span className="text-base font-bold text-[#191c1e] tracking-tight">sys_admin</span>
-              <span className="text-sm text-slate-500 font-medium">System Admin</span>
-            </div>
+          <nav className="hidden md:flex items-center gap-1">
+            {/* Dashboard Link */}
+            <Link
+              to="/admin/system"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-100 hover:text-white hover:bg-emerald-800/50"
+            >
+              Dashboard
+            </Link>
             
-            <div className="w-10 h-10 rounded-full border-2 border-[#005c3a] flex items-center justify-center bg-white text-[#005c3a]">
-              <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                account_circle
-              </span>
+            {/* Bookings Link */}
+            <Link
+              to="/admin/bookings"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-100 hover:text-white hover:bg-emerald-800/50"
+            >
+              Bookings
+            </Link>
+            
+            {/* User Management Link - ACTIVE */}
+            <Link
+              to="/admin/users"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-emerald-500 text-white shadow-sm"
+            >
+              User management
+            </Link>
+            
+            {/* Announcements Link */}
+            <Link
+              to="/admin/announcements"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-100 hover:text-white hover:bg-emerald-800/50"
+            >
+              Announcements
+            </Link>
+          </nav>
+          
+          <div className="flex items-center gap-3">
+            <button className="p-2 rounded-lg text-white hover:bg-emerald-800 transition-colors relative">
+              <span className="material-symbols-outlined text-xl">notifications</span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+            </button>
+            
+            <div className="h-6 w-[1px] bg-emerald-800 mx-1"></div>
+            
+            <div className="relative">
+              <button 
+                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-emerald-800 transition-all focus:outline-none"
+              >
+                <div className="w-7 h-7 rounded-lg border border-emerald-400 flex items-center justify-center bg-white text-[#006948]">
+                  <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    account_circle
+                  </span>
+                </div>
+                <div className="hidden sm:block text-left max-w-[120px]">
+                  <p className="text-xs font-bold text-white truncate leading-tight">sys_admin</p>
+                </div>
+                <span className="material-symbols-outlined text-emerald-200 text-sm">keyboard_arrow_down</span>
+              </button>
+
+              {isProfileDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsProfileDropdownOpen(false)}></div>
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-20 text-[#191c1e]">
+                    <div className="px-3 py-2 border-b border-slate-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Account:</p>
+                      <p className="text-xs font-semibold text-slate-700 truncate mt-0.5">sys_admin</p>
+                    </div>
+                    <Link 
+                      to="/login"
+                      onClick={() => setIsProfileDropdownOpen(false)}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors text-left"
+                    >
+                      <span className="material-symbols-outlined text-base">logout</span>
+                      <span>Log out</span>
+                    </Link>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Container Workspace */}
-      <main className="ml-64 pt-16 min-h-screen p-8">
-        <header className="flex justify-between items-end pt-6 mb-12">
+      {/* --- MAIN Container Workspace (Stretched completely to full window layout width) --- */}
+      <main className="flex-grow w-full max-w-[1280px] mx-auto px-6 py-8">
+        <header className="flex justify-between items-end mb-12">
           <div className="flex flex-col gap-1">
             <h1 className="text-4xl font-bold tracking-tight text-[#191c1e]">User Management</h1>
             <p className="text-[#3d4a42] text-base">Oversee all registered application accounts, system parameters, and security roles.</p>
@@ -214,12 +236,11 @@ const UserManagement = () => {
         ) : error ? (
           <div className="text-center py-12 text-[#ba1a1a] font-semibold">Database Link Failure: {error}</div>
         ) : (
-          /* Removed overflow-hidden to allow dropdown visibility on short lists */
           <section className="bg-white rounded-xl shadow-sm border border-[#bccac0]/20">
             
             {/* Status Navigation Tab Filters */}
             <div className="flex border-b border-[#bccac0]/20 px-6 pt-6">
-              {['All Users', 'customer', 'provider'].map((tab) => (
+              {['All Users', 'Client', 'Provider'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -229,7 +250,7 @@ const UserManagement = () => {
                       : 'text-[#3d4a42] border-transparent hover:text-[#006948]'
                   }`}
                 >
-                  {tab === 'customer' ? 'Clients' : tab === 'provider' ? 'Providers' : tab}
+                  {tab}
                 </button>
               ))}
             </div>
@@ -253,7 +274,7 @@ const UserManagement = () => {
             </div>
 
             {/* Layout wrapper altered to handle visible absolute element drop menus */}
-            <div className="w-full">
+            <div className="w-full overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-[#f2f4f6] text-[#3d4a42] uppercase text-[10px] font-bold tracking-widest">
                   <tr>
@@ -322,7 +343,6 @@ const UserManagement = () => {
                             {activeDropdownUserId === user.userid && (
                               <div 
                                 ref={dropdownRef}
-                                /* Handled layout visibility cleanly by enforcing top orientation if list entries are short */
                                 className={`absolute right-0 w-52 bg-white shadow-xl border border-slate-200 rounded-xl overflow-hidden z-50 ${
                                   filteredUsers.length <= 2 ? 'top-full mt-1' : (index < 2 ? 'top-full mt-1' : 'bottom-full mb-1')
                                 }`}
@@ -357,127 +377,80 @@ const UserManagement = () => {
       </main>
 
       {/* =========================================================================
-          DETAILS MODAL CARD OVERLAY WITH THICKER CUSTOM GREEN BORDER
+          DETAILS MODAL CARD OVERLAY WITH TAILWIND DESIGN MAPPING
           ========================================================================= */}
       {selectedUser && (
         <div 
           onClick={() => setSelectedUser(null)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'rgba(0, 0, 0, 0.65)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '20px',
-            boxSizing: 'border-box'
-          }}
+          className="fixed inset-0 bg-black/65 backdrop-blur-[4px] flex items-center justify-center z-[9999] p-5 box-border"
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: '#ffffff',
-              color: '#191c1e',
-              border: '3px solid #006948',
-              borderRadius: '16px',
-              width: '100%',
-              maxWidth: '460px',
-              padding: '24px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              boxSizing: 'border-box'
-            }}
+            className="bg-white text-[#191c1e] border-3 border-[#006948] rounded-2xl w-full max-w-[460px] p-6 shadow-2xl flex flex-col gap-4 box-border"
           >
             {/* Modal Card Header */}
-            <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '13px', fontFamily: 'monospace', backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', color: '#006948' }}>
+            <div className="flex items-center border-b border-slate-100 pb-3 justify-between">
+              <span className="text-[13px] font-mono bg-slate-100 px-2 py-1 rounded font-bold color text-[#006948]">
                 {selectedUser.unique_token}
               </span>
               <button 
                 onClick={() => setSelectedUser(null)} 
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                className="bg-none border-none cursor-pointer p-1 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors"
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
+                <span className="material-symbols-outlined text-xl">close</span>
               </button>
             </div>
             
             {/* Profile Overview Box */}
-            <div style={{ backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
-              <div style={{ flex: 1 }}>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '700', color: '#1e293b' }}>{selectedUser.name}</h3>
-                <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#64748b' }}>{selectedUser.email}</p>
-                <span style={{ 
-                  fontSize: '10px', 
-                  fontWeight: 'bold', 
-                  letterSpacing: '0.5px',
-                  textTransform: 'uppercase', 
-                  padding: '4px 8px', 
-                  borderRadius: '4px',
-                  backgroundColor: selectedUser.status === 'SUSPENDED' ? '#fee2e2' : '#d1fae5',
-                  color: selectedUser.status === 'SUSPENDED' ? '#991b1b' : '#065f46'
-                }}>
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between gap-4">
+              <div className="flex-grow">
+                <h3 className="m-0 mb-1 text-lg font-bold text-slate-800">{selectedUser.name}</h3>
+                <p className="m-0 mb-2 text-sm text-slate-500">{selectedUser.email}</p>
+                <span className={`text-[10px] font-bold tracking-wider uppercase px-2 py-1 rounded ${
+                  selectedUser.status === 'SUSPENDED' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
+                }`}>
                   Status: {selectedUser.status || 'ACTIVE'}
                 </span>
               </div>
 
               {/* Profile Image Space Placeholder */}
-              <div style={{ 
-                width: '64px', 
-                height: '64px', 
-                borderRadius: '50%', 
-                backgroundColor: '#e2e8f0', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                border: '2px solid #006948',
-                overflow: 'hidden',
-                flexShrink: 0
-              }}>
+              <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center border-2 border-[#006948] overflow-hidden flex-shrink-0">
                 {selectedUser.profile_pic ? (
-                  <img src={selectedUser.profile_pic} alt={selectedUser.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={selectedUser.profile_pic} alt={selectedUser.name} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="material-symbols-outlined" style={{ color: '#94a3b8', fontSize: '32px' }}>person</span>
+                  <span className="material-symbols-outlined text-slate-400 text-3xl">person</span>
                 )}
               </div>
             </div>
             
             {/* Core Attributes Grid Layout */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px' }}>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ flex: 1, backgroundColor: '#fdfdfd', padding: '12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                  <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '2px' }}>Verification</span>
-                  <strong style={{ color: '#334155', fontWeight: '600' }}>{selectedUser.is_verified ? 'Verified User' : 'Unverified Account'}</strong>
+            <div className="flex flex-col gap-3 text-sm">
+              <div className="flex gap-3">
+                <div className="flex-1 bg-slate-50/40 p-3 rounded-lg border border-slate-100">
+                  <span className="text-[11px] text-slate-400 block mb-0.5">Verification</span>
+                  <strong className="text-slate-700 font-semibold">{selectedUser.is_verified ? 'Verified User' : 'Unverified Account'}</strong>
                 </div>
-                <div style={{ flex: 1, backgroundColor: '#fdfdfd', padding: '12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                  <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '2px' }}>Connection</span>
-                  <strong style={{ color: '#334155', fontWeight: '600' }}>{selectedUser.is_online ? 'Online Now' : 'Offline'}</strong>
+                <div className="flex-1 bg-slate-50/40 p-3 rounded-lg border border-slate-100">
+                  <span className="text-[11px] text-slate-400 block mb-0.5">Connection</span>
+                  <strong className="text-slate-700 font-semibold">{selectedUser.is_online ? 'Online Now' : 'Offline'}</strong>
                 </div>
               </div>
 
-              {selectedUser.role === 'provider' && (
-                <div style={{ backgroundColor: '#fdfdfd', padding: '12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                  <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '2px' }}>Category Specialty</span>
-                  <strong style={{ color: '#334155', fontWeight: '600', textTransform: 'capitalize' }}>{selectedUser.category || 'General Maintenance'}</strong>
+              {selectedUser.role === 'Provider' && (
+                <div className="bg-slate-50/40 p-3 rounded-lg border border-slate-100">
+                  <span className="text-[11px] text-slate-400 block mb-0.5">Category Specialty</span>
+                  <strong className="text-slate-700 font-semibold capitalize">{selectedUser.category || 'General Maintenance'}</strong>
                 </div>
               )}
               
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <div style={{ flex: 1, backgroundColor: '#fdfdfd', padding: '12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                  <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '2px' }}>Completed Jobs</span>
-                  <strong style={{ color: '#1e293b', fontWeight: '700' }}>{selectedUser.completed_jobs ?? 0} Requests</strong>
+              <div className="flex gap-3">
+                <div className="flex-1 bg-slate-50/40 p-3 rounded-lg border border-slate-100">
+                  <span className="text-[11px] text-slate-400 block mb-0.5">Completed Jobs</span>
+                  <strong className="text-slate-800 font-bold">{selectedUser.completed_jobs ?? 0} Requests</strong>
                 </div>
-                <div style={{ flex: 1, backgroundColor: '#fdfdfd', padding: '12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                  <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '2px' }}>Cancelled Jobs</span>
-                  <strong style={{ color: '#1e293b', fontWeight: '700' }}>{selectedUser.cancelled_jobs ?? 0} Requests</strong>
+                <div className="flex-1 bg-slate-50/40 p-3 rounded-lg border border-slate-100">
+                  <span className="text-[11px] text-slate-400 block mb-0.5">Cancelled Jobs</span>
+                  <strong className="text-slate-800 font-bold">{selectedUser.cancelled_jobs ?? 0} Requests</strong>
                 </div>
               </div>
             </div>

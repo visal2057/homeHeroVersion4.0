@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom'; // Added Link for seamless dashboard routing
 
 const BookingsManagement = () => {
   // Frontend component states
   const [bookings, setBookings] = useState([]);
-  const [filteredBookings, setFilteredBookings] = useState([]);
   const [activeTab, setActiveTab] = useState('All Bookings');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState('All Time'); // Added for the date-range picker constraint
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Fetch real data from the backend table on mount
   useEffect(() => {
@@ -23,7 +23,6 @@ const BookingsManagement = () => {
         }
         const data = await response.json();
         setBookings(data);
-        setFilteredBookings(data);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -34,61 +33,54 @@ const BookingsManagement = () => {
     fetchBookings();
   }, []);
 
-  // Handle client-side filtering combined with Search Inputs, Tabs, and Date Range Picker
-  useEffect(() => {
-    let result = bookings;
+  // --- CALC FILTERED DATA ON THE FLY (Fixes React 19 Cascading Render Warning) ---
+  let filteredBookings = bookings;
 
-    // 1. Filter by Status Tab Selection
-    if (activeTab !== 'All Bookings') {
-      result = result.filter(
-        (b) => b.status && b.status.toLowerCase() === activeTab.toLowerCase()
-      );
-    }
+  // 1. Filter by Status Tab Selection
+  if (activeTab !== 'All Bookings') {
+    filteredBookings = filteredBookings.filter(
+      (b) => b.status && b.status.toLowerCase() === activeTab.toLowerCase()
+    );
+  }
 
-    // 2. Filter by Search Query (Matches Reference ID, Client Name, SP Provider Name, or Category)
-    // Added null checks using '||' to prevent crashes when provider names or descriptions are null
-    if (searchTerm.trim() !== '') {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(
-        (b) =>
-          (b.booking_reference || '').toLowerCase().includes(term) ||
-          (b.client_name || '').toLowerCase().includes(term) ||
-          (b.service_provider_name || '').toLowerCase().includes(term) ||
-          (b.service_category || '').toLowerCase().includes(term)
-      );
-    }
+  // 2. Filter by Search Query (Matches Reference ID, Client Name, SP Provider Name, or Category)
+  if (searchTerm.trim() !== '') {
+    const term = searchTerm.toLowerCase();
+    filteredBookings = filteredBookings.filter(
+      (b) =>
+        (b.booking_reference || '').toLowerCase().includes(term) ||
+        (b.client_name || '').toLowerCase().includes(term) ||
+        (b.service_provider_name || '').toLowerCase().includes(term) ||
+        (b.service_category || '').toLowerCase().includes(term)
+    );
+  }
 
-    // 3. Filter by Operational Date Range Constraint
-    if (dateRange !== 'All Time') {
-      const now = new Date();
-      result = result.filter((b) => {
-        // Safe fallback tracking against the target execution date
-        const targetBookingDate = b.booking_date ? new Date(b.booking_date) : null;
-        if (!targetBookingDate) return false;
-        
-        if (dateRange === 'This Month') {
-          const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-          const lastDayThisMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-          return targetBookingDate >= firstDayThisMonth && targetBookingDate <= lastDayThisMonth;
-        }
-        if (dateRange === 'Last Month') {
-          const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-          return targetBookingDate >= firstDayLastMonth && targetBookingDate <= lastDayLastMonth;
-        }
-        return true;
-      });
-    }
-
-    setFilteredBookings(result);
-  }, [activeTab, searchTerm, dateRange, bookings]);
+  // 3. Filter by Operational Date Range Constraint
+  if (dateRange !== 'All Time') {
+    const now = new Date();
+    filteredBookings = filteredBookings.filter((b) => {
+      const targetBookingDate = b.booking_date ? new Date(b.booking_date) : null;
+      if (!targetBookingDate) return false;
+      
+      if (dateRange === 'This Month') {
+        const firstDayThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDayThisMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        return targetBookingDate >= firstDayThisMonth && targetBookingDate <= lastDayThisMonth;
+      }
+      if (dateRange === 'Last Month') {
+        const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+        return targetBookingDate >= firstDayLastMonth && targetBookingDate <= lastDayLastMonth;
+      }
+      return true;
+    });
+  }
 
   // Helper helper to convert database timestamps into readable localized dates & times (with AM/PM)
   const formatBookingDateTime = (timestamp) => {
     if (!timestamp) return 'Unscheduled';
     const dateObj = new Date(timestamp);
     
-    // Formats into something readable like "May 4, 2026 - 08:30 AM"
     return dateObj.toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -108,7 +100,7 @@ const BookingsManagement = () => {
     if (lower.includes('elect')) return 'electrical_services';
     if (lower.includes('paint')) return 'format_paint';
     if (lower.includes('ac')) return 'ac_unit';
-    return 'construction'; // Default fallback icon
+    return 'construction'; 
   };
 
   // Helper badge color picker matching status values safely
@@ -127,7 +119,7 @@ const BookingsManagement = () => {
   };
 
   return (
-    <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen font-sans antialiased">
+    <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen font-sans antialiased flex flex-col relative">
       {/* External CSS Font & Icon Embeds */}
       <div
         dangerouslySetInnerHTML={{
@@ -141,75 +133,97 @@ const BookingsManagement = () => {
         }}
       />
 
-      {/* Side Navigation Rail */}
-      <aside className="fixed left-0 top-0 h-full w-64 z-50 p-6 flex flex-col gap-4 bg-white border-r border-slate-200 shadow-sm">
-        <div className="flex flex-col mb-6 px-4">
-          <span className="text-3xl font-bold text-[#006948]">HomeHero</span>
-          <span className="text-sm font-semibold text-slate-500">System Admin Console</span>
-        </div>
-        
-        <nav className="flex-grow flex flex-col gap-1">
-          {/* Dashboard Link */}
-          <Link className="flex items-center gap-3 text-slate-600 hover:bg-slate-100 transition-all px-4 py-3 rounded-lg" to="/admin/system">
-            <span className="material-symbols-outlined">dashboard</span>
-            <span className="text-sm font-semibold">Dashboard</span>
-          </Link>
-          
-          {/* Active Bookings Link */}
-          <Link className="flex items-center gap-3 bg-emerald-50 text-[#006948] rounded-lg px-4 py-3 font-bold" to="/admin/bookings">
-            <span className="material-symbols-outlined sidebar-active">calendar_today</span>
-            <span className="text-sm font-semibold">Bookings</span>
-          </Link>
-          
-          {/* User Management Link - ROUTED PROPERLY TO YOUR USER CONSOLE ROUTE ELEMENT */}
-          <Link className="flex items-center gap-3 text-slate-600 hover:bg-slate-100 transition-all px-4 py-3 rounded-lg" to="/admin/users">
-            <span className="material-symbols-outlined">engineering</span>
-            <span className="text-sm font-semibold">User management</span>
-          </Link>
-          
-          {/* Announcements Link */}
-          <Link className="flex items-center gap-3 text-slate-600 hover:bg-slate-100 transition-all px-4 py-3 rounded-lg" to="/admin/announcements">
-            <span className="material-symbols-outlined">campaign</span>
-            <span className="text-sm font-semibold">Announcements</span>
-          </Link>
-        </nav>
-        
-        <div className="mt-auto border-t border-slate-200 pt-4 flex flex-col gap-1">
-          {/* Logout Link */}
-          <Link className="flex items-center gap-3 text-red-600 hover:bg-red-50 px-4 py-3 rounded-lg transition-colors" to="/login">
-            <span className="material-symbols-outlined">logout</span>
-            <span className="text-sm font-semibold">Log Out</span>
-          </Link>
-        </div>
-      </aside>
+      {/* --- ADMINISTRATIVE TOP NAVIGATION BAR --- */}
+      <header className="bg-[#064E3B] text-white sticky top-0 z-40 shadow-md">
+        <div className="flex justify-between items-center w-full px-6 py-3 max-w-[1280px] mx-auto">
+          <div className="flex items-center gap-4">
+            <span className="text-lg font-black tracking-tight text-white">HomeHero</span>
+            <div className="h-4 w-[1px] bg-emerald-700 hidden sm:block"></div>
+            <span className="text-xs font-bold tracking-wider text-slate-200 uppercase hidden sm:block">
+              System Admin Console
+            </span>
+          </div>
 
-      {/* Top Bar Header Area */}
-      <header className="fixed top-0 right-0 w-[calc(100%-250px)] z-40 bg-[#f7f9fb]/80 backdrop-blur-md shadow-sm flex items-center px-8 py-2 h-16 justify-end">
-        <div className="flex items-center gap-4">
-          <button className="material-symbols-outlined text-[#005c3a] hover:bg-[#e6e8ea] p-2 rounded-full transition-colors text-2xl font-medium">
-            notifications
-          </button>
-          
-          {/* Vertical Divider line */}
-          <div className="w-[1px] h-8 bg-slate-300/80 mx-1"></div>
-
-          <div className="flex items-center gap-3 cursor-pointer hover:bg-[#e6e8ea] p-1 rounded-lg transition-colors">
-            <div className="flex flex-col items-end leading-tight">
-              <span className="text-base font-bold text-[#191c1e] tracking-tight">sys_admin</span>
-              <span className="text-sm text-slate-500 font-medium">System Admin</span>
-            </div>
+          <nav className="hidden md:flex items-center gap-1">
+            <Link
+              to="/admin/system"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-100 hover:text-white hover:bg-emerald-800/50"
+            >
+              Dashboard
+            </Link>
             
-            <div className="w-10 h-10 rounded-full border-2 border-[#005c3a] flex items-center justify-center bg-white text-[#005c3a]">
-              <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-                account_circle
-              </span>
+            <Link
+              to="/admin/bookings"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-emerald-500 text-white shadow-sm"
+            >
+              Bookings
+            </Link>
+            
+            <Link
+              to="/admin/users"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-100 hover:text-white hover:bg-emerald-800/50"
+            >
+              User management
+            </Link>
+            
+            <Link
+              to="/admin/announcements"
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-emerald-100 hover:text-white hover:bg-emerald-800/50"
+            >
+              Announcements
+            </Link>
+          </nav>
+          
+          <div className="flex items-center gap-3">
+            <button className="p-2 rounded-lg text-white hover:bg-emerald-800 transition-colors relative">
+              <span className="material-symbols-outlined text-xl">notifications</span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+            </button>
+            
+            <div className="h-6 w-[1px] bg-emerald-800 mx-1"></div>
+            
+            <div className="relative">
+              <button 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-emerald-800 transition-all focus:outline-none"
+              >
+                <div className="w-7 h-7 rounded-lg border border-emerald-400 flex items-center justify-center bg-white text-[#006948]">
+                  <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    account_circle
+                  </span>
+                </div>
+                <div className="hidden sm:block text-left max-w-[120px]">
+                  <p className="text-xs font-bold text-white truncate leading-tight">sys_admin</p>
+                </div>
+                <span className="material-symbols-outlined text-emerald-200 text-sm">keyboard_arrow_down</span>
+              </button>
+
+              {isDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)}></div>
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-20 text-[#191c1e]">
+                    <div className="px-3 py-2 border-b border-slate-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Account:</p>
+                      <p className="text-xs font-semibold text-slate-700 truncate mt-0.5">sys_admin</p>
+                    </div>
+                    <Link 
+                      to="/login"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition-colors text-left"
+                    >
+                      <span className="material-symbols-outlined text-base">logout</span>
+                      <span>Log out</span>
+                    </Link>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Container Workspace */}
-      <main className="ml-64 pt-16 min-h-screen p-8">
+      {/* --- MAIN PAGE CONTENT --- */}
+      <main className="flex-grow w-full max-w-[1280px] mx-auto px-6 py-8">
         <header className="flex justify-between items-end mb-12">
           <div className="flex flex-col gap-1">
             <h1 className="text-4xl font-bold tracking-tight text-[#191c1e]">Bookings Management</h1>
@@ -217,7 +231,6 @@ const BookingsManagement = () => {
           </div>
         </header>
 
-        {/* Data Loading and Error Screen Handlers */}
         {loading ? (
           <div className="text-center py-12 text-[#3d4a42] font-semibold">Loading system table parameters...</div>
         ) : error ? (
@@ -242,7 +255,7 @@ const BookingsManagement = () => {
               ))}
             </div>
 
-            {/* Dynamic Search Box and Functional Toolbar controls */}
+            {/* Dynamic Search Box Controls */}
             <div className="p-6 flex flex-col md:flex-row gap-3 justify-between items-start md:items-center bg-[#f2f4f6]/50">
               <div className="flex flex-col sm:flex-row gap-3 items-center w-full md:w-auto">
                 <div className="relative min-w-[260px]">
@@ -258,7 +271,6 @@ const BookingsManagement = () => {
                   />
                 </div>
 
-                {/* Operational improvement feature: Date Range Picker component filter */}
                 <div className="relative">
                   <select
                     value={dateRange}
@@ -280,7 +292,7 @@ const BookingsManagement = () => {
               </button>
             </div>
 
-            {/* Live Synchronized Rows Layout */}
+            {/* Layout Rows */}
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-[#f2f4f6] text-[#3d4a42] uppercase text-[10px] font-bold tracking-widest">
@@ -305,11 +317,9 @@ const BookingsManagement = () => {
                   ) : (
                     filteredBookings.map((booking) => (
                       <tr key={booking.booking_id} className="hover:bg-[#f2f4f6]/30 transition-colors group">
-                        {/* Reference Num */}
                         <td className="px-6 py-4 text-sm font-semibold text-[#006948]">
                           {booking.booking_reference}
                         </td>
-                        {/* Service Category */}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <span className="material-symbols-outlined text-[#006948] text-xl">
@@ -318,7 +328,6 @@ const BookingsManagement = () => {
                             <span className="text-sm font-semibold">{booking.service_category}</span>
                           </div>
                         </td>
-                        {/* Job Type column highlighting Open Requests vs Direct requests */}
                         <td className="px-6 py-4 text-sm font-medium whitespace-nowrap">
                           <span className={`px-2 py-0.5 rounded text-xs ${
                             booking.job_type === 'Direct job' 
@@ -328,11 +337,9 @@ const BookingsManagement = () => {
                             {booking.job_type}
                           </span>
                         </td>
-                        {/* Client Name */}
                         <td className="px-6 py-4 text-sm text-[#191c1e] font-medium">
                           {booking.client_name}
                         </td>
-                        {/* Service Provider Name */}
                         <td className="px-6 py-4 text-sm text-[#191c1e]">
                           {!booking.service_provider_name || booking.service_provider_name === 'Unassigned' ? (
                             <span className="text-slate-400 italic font-normal">Awaiting Pickup</span>
@@ -340,17 +347,14 @@ const BookingsManagement = () => {
                             booking.service_provider_name
                           )}
                         </td>
-                        {/* Modified: Renders the new single combined Booking Date column */}
                         <td className="px-6 py-4 text-[#191c1e] text-sm font-medium">
                           {formatBookingDateTime(booking.booking_date)}
                         </td>
-                        {/* Status Check badge */}
                         <td className="px-6 py-4">
                           <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tight ${getStatusBadgeClass(booking.status)}`}>
                             {booking.status}
                           </span>
                         </td>
-                        {/* Options trigger list */}
                         <td className="px-6 py-4 text-right whitespace-nowrap">
                           <div className="inline-flex items-center gap-2">
                             <button className="material-symbols-outlined text-[#3d4a42] hover:bg-[#e6e8ea] p-1 rounded transition-colors">
@@ -365,7 +369,6 @@ const BookingsManagement = () => {
               </table>
             </div>
 
-            {/* Standard Pagination segment */}
             <div className="px-6 py-3 bg-[#f2f4f6] border-t border-[#bccac0]/10 flex justify-between items-center">
               <span className="text-xs font-medium text-[#3d4a42]">
                 Showing {filteredBookings.length} of {bookings.length} bookings entries
