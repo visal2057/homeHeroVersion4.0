@@ -78,12 +78,8 @@ function App() {
         <Route path="/booking/request" element={<ProtectedRoute requiredRole="customer"><BookingRequest /></ProtectedRoute>} />
         
         {/* Provider Routes */}
-        <Route path="/provider/dashboard" element={
-  <ProtectedRoute allowedRoles={['provider', 'service_provider']}>
-    <SPDashboard />
-  </ProtectedRoute>
-} />
-        <Route path="/provider/subscription" element={<Subscription />} />
+        <Route path="/provider/dashboard" element={<ProtectedRoute allowedRoles={['provider', 'service_provider']}><SPDashboard /></ProtectedRoute>} />
+        <Route path="/provider/subscription" element={<ProtectedRoute allowedRoles={['provider', 'service_provider']}><Subscription /></ProtectedRoute>} />
         
         {/* Admin Routes */}
         <Route path="/admin/system" element={<ProtectedRoute requiredRole="SYSTEM_ADMIN"><SystemAdminDashboard /></ProtectedRoute>} />
