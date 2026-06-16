@@ -3,9 +3,169 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'homehero_secret_key_2026';
+const MAX_LOGIN_ATTEMPTS = 3;
+const LOCK_TIME_MINUTES = 30;
 
 // ============================================
-// SERVICE PROVIDER SIGN UP
+// LOG LOGIN ATTEMPTS
+// ============================================
+const logLoginAttempt = async (userId, email, success, ipAddress) => {
+    try {
+        await pool.query(
+            `INSERT INTO login_attempts (user_id, email, ip_address, success, attempted_at)
+             VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
+            [userId, email, ipAddress, success]
+        );
+    } catch (err) {
+        console.error('Log login attempt error:', err);
+    }
+};
+
+// ============================================
+// GET LOGIN ATTEMPTS HISTORY
+// ============================================
+const getLoginAttempts = async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const result = await pool.query(
+            `SELECT email, ip_address, success, attempted_at 
+             FROM login_attempts 
+             WHERE user_id = $1 
+             ORDER BY attempted_at DESC 
+             LIMIT 20`,
+            [userId]
+        );
+        res.json({ attempts: result.rows });
+    } catch (error) {
+        console.error('Get login attempts error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+// ============================================
+// LOGIN USER WITH ATTEMPT LIMIT
+// ============================================
+const loginUser = async (req, res) => {
+    const { identifier, password } = req.body;
+
+    if (!identifier || !password) {
+        return res.status(400).json({ message: 'Please provide both username/email and a password.' });
+    }
+
+    try {
+        const cleanIdentifier = identifier.toLowerCase().trim();
+        const result = await pool.query(
+            `SELECT userid, username, email, password, role, status, failed_login_attempts, locked_until
+             FROM users WHERE (LOWER(username) = $1 OR LOWER(email) = $1) LIMIT 1`,
+            [cleanIdentifier]
+        );
+
+        if (result.rows.length === 0) {
+            await logLoginAttempt(null, identifier, false, req.ip);
+            return res.status(401).json({ message: 'Invalid username/email or password.' });
+        }
+
+        const user = result.rows[0];
+
+        // Check if account is locked
+        if (user.locked_until && new Date() < new Date(user.locked_until)) {
+            const remaining = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
+            return res.status(403).json({ 
+                message: `Account locked. Try again in ${remaining} minutes` 
+            });
+        }
+
+        // Check account status
+        if (user.status === 'PENDING_OTP') {
+            return res.status(403).json({ message: 'Please verify your email first.' });
+        }
+
+        if (user.status === 'PENDING_REVIEW') {
+            return res.status(403).json({ message: 'Your account is pending verification. Please wait for admin approval.' });
+        }
+
+        if (user.status !== 'ACTIVE' && user.status !== 'APPROVED') {
+            return res.status(403).json({ message: 'Your account is not active. Please contact support.' });
+        }
+
+        // Verify password
+        let isValidPassword = false;
+        try {
+            if (user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$'))) {
+                isValidPassword = await bcrypt.compare(password, user.password);
+            } else {
+                isValidPassword = (user.password === password);
+            }
+        } catch (err) {
+            isValidPassword = (user.password === password);
+        }
+
+        if (!isValidPassword) {
+            const attempts = (user.failed_login_attempts || 0) + 1;
+            let locked_until = null;
+
+            if (attempts >= MAX_LOGIN_ATTEMPTS) {
+                locked_until = new Date();
+                locked_until.setMinutes(locked_until.getMinutes() + LOCK_TIME_MINUTES);
+                
+                await pool.query(
+                    'UPDATE users SET failed_login_attempts = $1, locked_until = $2 WHERE userid = $3',
+                    [0, locked_until, user.userid]
+                );
+                
+                await logLoginAttempt(user.userid, identifier, false, req.ip);
+                
+                return res.status(403).json({ 
+                    message: `Too many failed attempts. Account locked for ${LOCK_TIME_MINUTES} minutes.` 
+                });
+            }
+
+            await pool.query(
+                'UPDATE users SET failed_login_attempts = $1 WHERE userid = $2',
+                [attempts, user.userid]
+            );
+            
+            await logLoginAttempt(user.userid, identifier, false, req.ip);
+
+            return res.status(401).json({ 
+                message: `Invalid credentials. ${MAX_LOGIN_ATTEMPTS - attempts} attempts remaining.` 
+            });
+        }
+
+        // Reset attempts on successful login
+        await pool.query(
+            'UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE userid = $1',
+            [user.userid]
+        );
+
+        await logLoginAttempt(user.userid, identifier, true, req.ip);
+
+        const token = jwt.sign(
+            { userId: user.userid, email: user.email, role: user.role },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        return res.status(200).json({
+            message: 'Authentication successful!',
+            token: token,
+            user: {
+                id: user.userid,
+                username: user.username,
+                email: user.email,
+                role: user.role
+            }
+        });
+
+    } catch (error) {
+        console.error('Login error:', error);
+        return res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+
+// ============================================
+// SERVICE PROVIDER SIGN UP (MAX 2 CATEGORIES)
 // ============================================
 const providerSignUp = async (req, res) => {
     const {
@@ -14,8 +174,27 @@ const providerSignUp = async (req, res) => {
         police_station, police_report_date
     } = req.body;
 
-    console.log('📝 Provider Signup:', { full_name, email, phone });
+    console.log('📝 Provider Signup:', { full_name, email, phone, categories });
 
+    // ===== VALIDATIONS =====
+    // 1. Name - Letters only (no numbers)
+    const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+    if (!nameRegex.test(full_name.trim())) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Name can only contain letters (no numbers)' 
+        });
+    }
+
+    // 2. Categories - Max 2
+    if (!categories || categories.length === 0 || categories.length > 2) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Please select 1-2 categories only' 
+        });
+    }
+
+    // 3. Required fields
     if (!full_name || !email || !phone || !password || !district) {
         return res.status(400).json({ success: false, message: 'All required fields are required' });
     }
@@ -51,7 +230,7 @@ const providerSignUp = async (req, res) => {
             [newUser.userid, nic_number, police_station, police_report_date]
         );
 
-        const categoryStr = (categories && categories.length > 0) ? categories[0] : 'General';
+        const categoryStr = (categories && categories.length > 0) ? categories.join(', ') : 'General';
         await pool.query(
             `INSERT INTO service_providers (userid, category, is_verified, is_online, rejected_requests, completed_jobs, cancelled_jobs)
              VALUES ($1, $2, false, false, 0, 0, 0)`,
@@ -91,6 +270,15 @@ const providerSignUp = async (req, res) => {
 // ============================================
 const customerSignUp = async (req, res) => {
     const { full_name, email, phone, password } = req.body;
+
+    // Name validation - Letters only
+    const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+    if (!nameRegex.test(full_name.trim())) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Name can only contain letters (no numbers)' 
+        });
+    }
 
     if (!full_name || !email || !phone || !password) {
         return res.status(400).json({ success: false, message: 'All fields are required' });
@@ -148,75 +336,6 @@ const customerSignUp = async (req, res) => {
         await pool.query('ROLLBACK');
         console.error('Customer signup error:', error);
         return res.status(500).json({ success: false, message: 'Database error: ' + error.message });
-    }
-};
-
-// ============================================
-// LOGIN USER
-// ============================================
-const loginUser = async (req, res) => {
-    const { identifier, password } = req.body;
-
-    if (!identifier || !password) {
-        return res.status(400).json({ message: 'Please provide both username/email and a password.' });
-    }
-
-    try {
-        const cleanIdentifier = identifier.toLowerCase().trim();
-        const result = await pool.query(
-            `SELECT userid, username, email, password, role, status
-             FROM users WHERE (LOWER(username) = $1 OR LOWER(email) = $1) LIMIT 1`,
-            [cleanIdentifier]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(401).json({ message: 'Invalid username/email or password.' });
-        }
-
-        const user = result.rows[0];
-
-        if (user.status !== 'ACTIVE') {
-            if (user.status === 'PENDING_REVIEW') {
-                return res.status(403).json({ message: 'Your account is pending verification. Please wait for admin approval.' });
-            }
-            return res.status(403).json({ message: 'Your account is not active. Please contact support.' });
-        }
-
-        let isValidPassword = false;
-        try {
-            if (user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$'))) {
-                isValidPassword = await bcrypt.compare(password, user.password);
-            } else {
-                isValidPassword = (user.password === password);
-            }
-        } catch (err) {
-            isValidPassword = (user.password === password);
-        }
-
-        if (!isValidPassword) {
-            return res.status(401).json({ message: 'Invalid username/email or password.' });
-        }
-
-        const token = jwt.sign(
-            { userId: user.userid, email: user.email, role: user.role },
-            JWT_SECRET,
-            { expiresIn: '7d' }
-        );
-
-        return res.status(200).json({
-            message: 'Authentication successful!',
-            token: token,
-            user: {
-                id: user.userid,
-                username: user.username,
-                email: user.email,
-                role: user.role
-            }
-        });
-
-    } catch (error) {
-        console.error('Login error:', error);
-        return res.status(500).json({ message: 'Internal server error.' });
     }
 };
 
@@ -467,7 +586,7 @@ const uploadDocument = async (req, res) => {
 };
 
 // ============================================
-// GET VERIFICATION STATUS  — FIXED: userid column
+// GET VERIFICATION STATUS
 // ============================================
 const getVerificationStatus = async (req, res) => {
     try {
@@ -565,6 +684,7 @@ module.exports = {
     updateWorkerDetails,
     uploadDocument,
     getVerificationStatus,
+    getLoginAttempts,
     googleLogin,
     healthCheck
 };
