@@ -1,24 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../components/AuthContext';
 
 const RegisteredHome = () => {
+  const { user, logout } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notifDrawerOpen, setNotifDrawerOpen] = useState(false);
-  const [displayName, setDisplayName] = useState('Valued Client');
-
-  useEffect(() => {
-    try {
-      const userStr = localStorage.getItem('user');
-      if (userStr) {
-        const userObj = JSON.parse(userStr);
-        if (userObj && userObj.username) {
-          setDisplayName(userObj.username);
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
+  const displayName = user?.username || user?.full_name || 'Valued Client';
 
   const notifications = [
     { icon: "event_available", title: "Booking Confirmed", message: "Your gardening session with Aruna is set for tomorrow.", time: "2 mins ago", unread: true },
@@ -122,10 +110,10 @@ const RegisteredHome = () => {
                   </Link>
                 </li>
                 <li className="px-3 mt-4 border-t pt-4">
-                  <Link to="/login" onClick={() => { localStorage.clear(); setDrawerOpen(false); }} className="flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl">
+                  <button onClick={() => { logout(); setDrawerOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-50 rounded-xl">
                     <span className="material-symbols-outlined text-sm">logout</span>
                     <span className="text-sm font-semibold">Log Out</span>
-                  </Link>
+                  </button>
                 </li>
               </ul>
             </nav>

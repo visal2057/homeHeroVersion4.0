@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import GoogleLogin from '../../components/GoogleLogin';
+import { useAuth } from '../../components/AuthContext'; // Import our hook
 
 function LoginPage() {
+  const { login } = useAuth(); // Destructure our centralized login function
   const [email, setEmail] = useState(''); 
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -12,37 +14,6 @@ function LoginPage() {
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
-  };
-
-  // ==================== ROLE TO ROUTE MAPPING (FIXED) ====================
-  const getRedirectPath = (role) => {
-    console.log('🔄 Role detected:', role);
-    
-    // ===== Admin roles - exact match =====
-    if (role === 'SYSTEM_ADMIN') {
-      console.log('✅ SYSTEM_ADMIN → /admin/system');
-      return '/admin/system';
-    }
-    if (role === 'VERIFICATION_ADMIN') {
-      console.log('✅ VERIFICATION_ADMIN → /admin/verify');
-      return '/admin/verify';
-    }
-    
-    // ===== Other roles - case insensitive =====
-    const normalizedRole = role?.toLowerCase() || '';
-    
-    if (normalizedRole === 'provider' || normalizedRole === 'service_provider') {
-    console.log('✅ Provider → /provider/dashboard');
-    return '/provider/dashboard';  // Changed from /auth/sp-dashboard
-  }
-    if (normalizedRole === 'customer' || normalizedRole === 'client') {
-      console.log('✅ Customer → /dashboard');
-      return '/dashboard';
-    }
-    
-    // ===== FIXED: Unknown role - go to home page =====
-    console.warn('⚠️ Unknown role, going to home:', role);
-    return '/';  // ✅ Home page - NOT SP Dashboard!
   };
 
   const handleLoginSubmit = async (e) => {
@@ -59,24 +30,11 @@ function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // Save to localStorage
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('loginTime', Date.now().toString());
-         localStorage.setItem('role', data.user.role);
-        
-        console.log('✅ Login successful!');
-        console.log('👤 User:', data.user);
-        console.log('🏷️ Role:', data.user.role);
-        
         showToast(`Welcome ${data.user.username}!`, 'success');
         
-        // Get redirect path based on role
-        const redirectPath = getRedirectPath(data.user.role);
-        console.log('🔀 Redirecting to:', redirectPath);
-        
+        // Let our centralized context update user state and redirect automatically
         setTimeout(() => {
-          navigate(redirectPath);
+          login(data.token, data.user);
         }, 1500);
         
       } else {
@@ -91,14 +49,11 @@ function LoginPage() {
   };
 
   const handleGoogleSuccess = (data) => {
-    console.log('Google login success:', data);
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    localStorage.setItem('loginTime', Date.now().toString());
     showToast(`Welcome ${data.user.username}!`, 'success');
     
-    const redirectPath = getRedirectPath(data.user.role);
-    setTimeout(() => navigate(redirectPath), 1500);
+    setTimeout(() => {
+      login(data.token, data.user);
+    }, 1500);
   };
 
   const handleGoogleError = (error) => {
@@ -200,4 +155,4 @@ function LoginPage() {
   );
 }
 
-export default LoginPage; 
+export default LoginPage;

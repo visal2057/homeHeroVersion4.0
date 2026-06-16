@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../components/AuthContext';
 
 const SignUp = () => {
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -93,12 +95,8 @@ const SignUp = () => {
       
       if (response.ok) {
         setSuccess('Account created successfully!');
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('loginTime', Date.now().toString());
-        
         setTimeout(() => {
-          navigate('/dashboard');
+          login(data.token, data.user, '/dashboard');
         }, 2000);
       } else {
         setError(data.message || 'Registration failed');
