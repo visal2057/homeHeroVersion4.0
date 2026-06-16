@@ -16,13 +16,19 @@ const SignUp = () => {
   });
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: name === 'full_name' ? value.replace(/[0-9]/g, '') : value
     });
   };
 
   const validateForm = () => {
+    const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+    if (!nameRegex.test(formData.full_name.trim())) {
+      setError('Name can only contain letters (no numbers)');
+      return false;
+    }
     if (!formData.full_name.trim()) {
       setError('Full name is required');
       return false;
@@ -89,6 +95,7 @@ const SignUp = () => {
         setSuccess('Account created successfully!');
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('loginTime', Date.now().toString());
         
         setTimeout(() => {
           navigate('/dashboard');

@@ -91,21 +91,35 @@ const WorkerRegister = () => {
     }
   };
 
-  const handleChange = (e) => {
+  // Name validation - Letters only (no numbers)
+  const handleNameChange = (e) => {
+    const value = e.target.value.replace(/[0-9]/g, '');
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: value
     });
   };
 
+  const handleChange = (e) => {
+    if (e.target.name === 'full_name') {
+      handleNameChange(e);
+    } else {
+      setFormData({
+        ...formData,
+        [e.target.name]: e.target.value
+      });
+    }
+  };
+
+  // Category toggle - MAX 2
   const handleCategoryToggle = (categoryId) => {
     let newCategories;
     if (formData.categories.includes(categoryId)) {
       newCategories = formData.categories.filter(id => id !== categoryId);
-    } else if (formData.categories.length < 5) {
+    } else if (formData.categories.length < 2) {
       newCategories = [...formData.categories, categoryId];
     } else {
-      setError('You can select up to 5 categories only');
+      setError('You can select up to 2 categories only');
       setTimeout(() => setError(''), 3000);
       return;
     }
@@ -133,7 +147,31 @@ const WorkerRegister = () => {
     }
   };
 
+  // Police Report File Upload with Name Display
+  const handlePoliceReportUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size exceeds 5MB limit');
+        return;
+      }
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Only JPG, PNG, and PDF files are allowed');
+        return;
+      }
+      handleFileChange('police_report', file);
+      setError('');
+    }
+  };
+
   const validateStep1 = () => {
+    // Name validation - Letters only
+    const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+    if (!nameRegex.test(formData.full_name.trim())) {
+      setError('Name can only contain letters (no numbers)');
+      return false;
+    }
     if (!formData.full_name.trim()) {
       setError('Full name is required');
       return false;
@@ -252,7 +290,11 @@ const WorkerRegister = () => {
     setLoading(true);
     
     try {
-      // Step 1: Register provider
+      const categoryNames = formData.categories.map((id) => {
+        const cat = categories.find((c) => c.id === id);
+        return cat ? cat.name : String(id);
+      });
+
       const registerResponse = await fetch('http://localhost:5000/api/auth/provider/signup', {
         method: 'POST',
         headers: {
@@ -264,7 +306,7 @@ const WorkerRegister = () => {
           phone: formData.phone,
           password: formData.password,
           district: formData.district,
-          categories: formData.categories,
+          categories: categoryNames,
           service_areas: formData.service_areas,
           nic_number: formData.nic_number,
           police_station: formData.police_station,
@@ -280,19 +322,13 @@ const WorkerRegister = () => {
         return;
       }
       
-      const token = registerData.token;
+      const authToken = registerData.token;
+
+      localStorage.setItem('token', authToken);
+      localStorage.setItem('user', JSON.stringify(registerData.user));
+      localStorage.setItem('loginTime', Date.now().toString());
       
-      // Step 2: Login to get authenticated session
-      const loginResponse = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: formData.email, password: formData.password })
-      });
-      
-      const loginData = await loginResponse.json();
-      const authToken = loginData.token || token;
-      
-      // Step 3: Update worker details
+      // Update worker details
       await fetch('http://localhost:5000/api/worker/update-details', {
         method: 'PUT',
         headers: {
@@ -400,7 +436,15 @@ const WorkerRegister = () => {
             
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '8px' }}>Full Name *</label>
-              <input type="text" name="full_name" value={formData.full_name} onChange={handleChange} style={{ width: '100%', padding: '12px 16px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '16px' }} placeholder="John Doe" required />
+              <input 
+                type="text" 
+                name="full_name" 
+                value={formData.full_name} 
+                onChange={handleChange} 
+                style={{ width: '100%', padding: '12px 16px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '16px' }} 
+                placeholder="John Doe" 
+                required 
+              />
             </div>
 
             <div style={{ marginBottom: '20px' }}>
@@ -438,7 +482,7 @@ const WorkerRegister = () => {
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '8px' }}>Service Categories (Select up to 5) *</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '8px' }}>Service Categories (Select up to 2) *</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
                 {categories.map(cat => (
                   <button
@@ -461,7 +505,7 @@ const WorkerRegister = () => {
                   </button>
                 ))}
               </div>
-              <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>Selected: {formData.categories.length}/5 categories</p>
+              <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>Selected: {formData.categories.length}/2 categories</p>
             </div>
 
             <div style={{ marginBottom: '20px' }}>
@@ -551,21 +595,62 @@ const WorkerRegister = () => {
               </div>
             </div>
 
+            {/* Police Report with File Name Display */}
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '8px' }}>Police Report *</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#334155', marginBottom: '8px' }}>Police Report * (PDF or Image)</label>
               <div 
                 style={{ border: '2px dashed #d1d5db', borderRadius: '12px', padding: '20px', textAlign: 'center', cursor: 'pointer', backgroundColor: '#f8fafc' }} 
                 onClick={() => document.getElementById('policeReportInput').click()}
               >
                 {filePreviews.police_report ? (
-                  filePreviews.police_report.startsWith('data:image') ? 
-                    <img src={filePreviews.police_report} alt="Police Report" style={{ maxWidth: '100%', maxHeight: '100px', objectFit: 'contain' }} /> :
-                    <div><div style={{ fontSize: '32px' }}>📄</div><p>PDF Uploaded</p></div>
+                  <div>
+                    <div style={{ fontSize: '32px' }}>📄</div>
+                    <p style={{ fontWeight: '600', color: '#059669' }}>
+                      📎 {selectedFiles.police_report?.name || 'File uploaded'}
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#6b7280' }}>
+                      {(selectedFiles.police_report?.size / 1024).toFixed(2)} KB
+                    </p>
+                    <button 
+                      type="button" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedFiles({...selectedFiles, police_report: null});
+                        setFilePreviews({...filePreviews, police_report: null});
+                      }}
+                      style={{ 
+                        marginTop: '8px', 
+                        padding: '4px 12px', 
+                        backgroundColor: '#fee2e2', 
+                        color: '#dc2626',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Remove File
+                    </button>
+                  </div>
                 ) : (
-                  <div><div style={{ fontSize: '48px' }}>📋</div><p>Click to upload Police Report</p><p style={{ fontSize: '12px', color: '#6b7280' }}>PDF or Image (Max 5MB)</p></div>
+                  <div>
+                    <div style={{ fontSize: '48px' }}>📋</div>
+                    <p style={{ fontWeight: '600' }}>Click to upload Police Report</p>
+                    <p style={{ fontSize: '12px', color: '#6b7280' }}>PDF or Image (Max 5MB)</p>
+                  </div>
                 )}
-                <input id="policeReportInput" type="file" accept=".pdf,image/*" style={{ display: 'none' }} onChange={(e) => handleFileChange('police_report', e.target.files[0])} />
+                <input 
+                  id="policeReportInput" 
+                  type="file" 
+                  accept=".pdf,image/*" 
+                  style={{ display: 'none' }} 
+                  onChange={handlePoliceReportUpload}
+                />
               </div>
+              {filePreviews.police_report && (
+                <p style={{ fontSize: '12px', color: '#059669', marginTop: '4px' }}>
+                  ✅ File uploaded: {selectedFiles.police_report?.name}
+                </p>
+              )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>

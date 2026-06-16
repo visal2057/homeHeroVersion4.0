@@ -29,6 +29,10 @@ const SPDashboard = () => {
             <span className="material-symbols-outlined">task_alt</span>
             <span className="font-label-bold text-label-bold">Completed jobs</span>
           </a>
+          <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors">
+            <span className="material-symbols-outlined">task_alt</span>
+            <span className="font-label-bold text-label-bold">Subscription</span>
+          </a>
         </nav>
       </aside>
 

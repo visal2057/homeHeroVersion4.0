@@ -14,6 +14,37 @@ function LoginPage() {
     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
   };
 
+  // ==================== ROLE TO ROUTE MAPPING (FIXED) ====================
+  const getRedirectPath = (role) => {
+    console.log('🔄 Role detected:', role);
+    
+    // ===== Admin roles - exact match =====
+    if (role === 'SYSTEM_ADMIN') {
+      console.log('✅ SYSTEM_ADMIN → /admin/system');
+      return '/admin/system';
+    }
+    if (role === 'VERIFICATION_ADMIN') {
+      console.log('✅ VERIFICATION_ADMIN → /admin/verify');
+      return '/admin/verify';
+    }
+    
+    // ===== Other roles - case insensitive =====
+    const normalizedRole = role?.toLowerCase() || '';
+    
+    if (normalizedRole === 'provider' || normalizedRole === 'service_provider') {
+    console.log('✅ Provider → /provider/dashboard');
+    return '/provider/dashboard';  // Changed from /auth/sp-dashboard
+  }
+    if (normalizedRole === 'customer' || normalizedRole === 'client') {
+      console.log('✅ Customer → /dashboard');
+      return '/dashboard';
+    }
+    
+    // ===== FIXED: Unknown role - go to home page =====
+    console.warn('⚠️ Unknown role, going to home:', role);
+    return '/';  // ✅ Home page - NOT SP Dashboard!
+  };
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -28,20 +59,31 @@ function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
+        // Save to localStorage
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('loginTime', Date.now().toString());
+         localStorage.setItem('role', data.user.role);
+        
+        console.log('✅ Login successful!');
+        console.log('👤 User:', data.user);
+        console.log('🏷️ Role:', data.user.role);
+        
         showToast(`Welcome ${data.user.username}!`, 'success');
         
+        // Get redirect path based on role
+        const redirectPath = getRedirectPath(data.user.role);
+        console.log('🔀 Redirecting to:', redirectPath);
+        
         setTimeout(() => {
-          if (data.user.role === 'SYSTEM_ADMIN') navigate('/admin/system');
-          else if (data.user.role === 'VERIFICATION_ADMIN') navigate('/admin/verify');
-          else if (data.user.role === 'Provider') navigate('/auth/sp-dashboard');
-          else navigate('/dashboard');
+          navigate(redirectPath);
         }, 1500);
+        
       } else {
         showToast(data.message || 'Invalid credentials', 'error');
       }
     } catch (error) {
+      console.error('Login error:', error);
       showToast('Cannot connect to server', 'error');
     } finally {
       setLoading(false);
@@ -52,14 +94,11 @@ function LoginPage() {
     console.log('Google login success:', data);
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
+    localStorage.setItem('loginTime', Date.now().toString());
     showToast(`Welcome ${data.user.username}!`, 'success');
     
-    setTimeout(() => {
-      if (data.user.role === 'SYSTEM_ADMIN') navigate('/admin/system');
-      else if (data.user.role === 'VERIFICATION_ADMIN') navigate('/admin/verify');
-      else if (data.user.role === 'Provider') navigate('/auth/sp-dashboard');
-      else navigate('/dashboard');
-    }, 1500);
+    const redirectPath = getRedirectPath(data.user.role);
+    setTimeout(() => navigate(redirectPath), 1500);
   };
 
   const handleGoogleError = (error) => {
@@ -91,7 +130,13 @@ function LoginPage() {
             <form onSubmit={handleLoginSubmit} className="space-y-5">
               <div>
                 <label className="text-xs font-bold text-slate-700 uppercase">Email or Username</label>
-                <input type="text" className="w-full px-4 py-3 rounded-lg border focus:border-emerald-500 outline-none" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <input 
+                  type="text" 
+                  className="w-full px-4 py-3 rounded-lg border focus:border-emerald-500 outline-none" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  required 
+                />
               </div>
               
               <div>
@@ -99,7 +144,13 @@ function LoginPage() {
                   <label className="text-xs font-bold text-slate-700 uppercase">Password</label>
                   <Link to="/auth/forgot-password" className="text-xs font-bold text-emerald-600 hover:underline">Forgot password?</Link>
                 </div>
-                <input type="password" className="w-full px-4 py-3 rounded-lg border focus:border-emerald-500 outline-none" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <input 
+                  type="password" 
+                  className="w-full px-4 py-3 rounded-lg border focus:border-emerald-500 outline-none" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                />
               </div>
               
               <div className="flex items-center gap-3">
@@ -107,7 +158,11 @@ function LoginPage() {
                 <label htmlFor="remember" className="text-xs font-semibold text-slate-600">Keep me signed in</label>
               </div>
               
-              <button type="submit" disabled={loading} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-all">
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-all"
+              >
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
@@ -145,4 +200,4 @@ function LoginPage() {
   );
 }
 
-export default LoginPage;
+export default LoginPage; 

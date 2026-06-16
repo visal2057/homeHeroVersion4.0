@@ -5,7 +5,8 @@ const {
     customerSignUp,
     loginUser,
     googleLogin,
-    healthCheck
+    healthCheck,
+    getLoginAttempts
 } = require('../controllers/AuthController');
 
 // Customer Sign Up
@@ -19,6 +20,9 @@ router.post('/login', loginUser);
 
 // Google OAuth Login
 router.post('/google', googleLogin);
+
+// Get login attempts history
+router.get('/login-attempts/:userId', getLoginAttempts);
 
 // Health check
 router.get('/health', healthCheck);
