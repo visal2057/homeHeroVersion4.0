@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Client Pages
 import LandingPage from './pages/Client/LandingPage';
@@ -36,7 +37,7 @@ import BookingManagement from './pages/Admin/BookingManagement';
 import UserManagement from './pages/Admin/UserManagement';
 import AdminAnnouncements from './pages/Admin/AdminAnnouncements';
 import SPDashboard from './pages/Provider/SPDashboard';
-
+import Subscription from './pages/Provider/Subscription';
 
 function App() {
   return (
@@ -62,29 +63,30 @@ function App() {
         <Route path="/auth/email-verified" element={<EmailVerified />} />
         
         {/* Client Dashboard Routes */}
-        <Route path="/dashboard" element={<RegisteredHome />} />
-        <Route path="/dashboard/account" element={<RegisteredHome />} />
-        <Route path="/dashboard/notifications" element={<RegisteredHome />} />
-        <Route path="/profile" element={<ClientProfileManagement />} />
-        <Route path="/my-bookings" element={<MyBookingsScreen />} />
-        <Route path="/explore" element={<CommonExplorePage />} />
-        <Route path="/checkout" element={<CommonCheckout />} />
-        <Route path="/payment-failed" element={<PaymentFailed />} />
+        <Route path="/dashboard" element={<ProtectedRoute requiredRole="customer"><RegisteredHome /></ProtectedRoute>} />
+        <Route path="/dashboard/account" element={<ProtectedRoute requiredRole="customer"><RegisteredHome /></ProtectedRoute>} />
+        <Route path="/dashboard/notifications" element={<ProtectedRoute requiredRole="customer"><RegisteredHome /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute requiredRole="customer"><ClientProfileManagement /></ProtectedRoute>} />
+        <Route path="/my-bookings" element={<ProtectedRoute requiredRole="customer"><MyBookingsScreen /></ProtectedRoute>} />
+        <Route path="/explore" element={<ProtectedRoute requiredRole="customer"><CommonExplorePage /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute requiredRole="customer"><CommonCheckout /></ProtectedRoute>} />
+        <Route path="/payment-failed" element={<ProtectedRoute requiredRole="customer"><PaymentFailed /></ProtectedRoute>} />
         
         {/* Booking Routes */}
-        <Route path="/booking/confirmed" element={<BookingConfirmed />} />
-        <Route path="/booking/declined" element={<BookingDeclined />} />
-        <Route path="/booking/request" element={<BookingRequest />} />
+        <Route path="/booking/confirmed" element={<ProtectedRoute requiredRole="customer"><BookingConfirmed /></ProtectedRoute>} />
+        <Route path="/booking/declined" element={<ProtectedRoute requiredRole="customer"><BookingDeclined /></ProtectedRoute>} />
+        <Route path="/booking/request" element={<ProtectedRoute requiredRole="customer"><BookingRequest /></ProtectedRoute>} />
         
         {/* Provider Routes */}
-        <Route path="/auth/sp-dashboard" element={<SPDashboard />} />
+        <Route path="/provider/dashboard" element={<ProtectedRoute allowedRoles={['provider', 'service_provider']}><SPDashboard /></ProtectedRoute>} />
+        <Route path="/provider/subscription" element={<ProtectedRoute allowedRoles={['provider', 'service_provider']}><Subscription /></ProtectedRoute>} />
         
         {/* Admin Routes */}
-        <Route path="/admin/system" element={<SystemAdminDashboard />} />
-        <Route path="/admin/verify" element={<VerifyAdminDashboard />} />
-        <Route path="/admin/bookings" element={<BookingManagement />} />
-        <Route path="/admin/users" element={<UserManagement />} />
-        <Route path="/admin/announcements" element={<AdminAnnouncements />} />
+        <Route path="/admin/system" element={<ProtectedRoute requiredRole="SYSTEM_ADMIN"><SystemAdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/verify" element={<ProtectedRoute requiredRole="VERIFICATION_ADMIN"><VerifyAdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/bookings" element={<ProtectedRoute requiredRole="SYSTEM_ADMIN"><BookingManagement /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute requiredRole="SYSTEM_ADMIN"><UserManagement /></ProtectedRoute>} />
+        <Route path="/admin/announcements" element={<ProtectedRoute requiredRole="SYSTEM_ADMIN"><AdminAnnouncements /></ProtectedRoute>} />
       </Routes>
     </Router>
   );
