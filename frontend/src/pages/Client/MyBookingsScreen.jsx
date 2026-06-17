@@ -65,6 +65,13 @@ const MyBookingsScreen = () => {
 
   const upcomingBookings = bookings.filter(b => b.status?.toLowerCase() !== 'completed' && b.status?.toLowerCase() !== 'cancelled') || [];
   const completedBookings = bookings.filter(b => b.status?.toLowerCase() === 'completed') || [];
+    const formatBookingDateTime = (timestamp) => {
+      if (!timestamp) return 'Date not specified';
+      const d = new Date(timestamp);
+      const date = d.toLocaleDateString();
+      const time = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      return `${date} ${time}`;
+    };
 
   return (
     <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen flex flex-col font-['Inter']">
@@ -128,26 +135,24 @@ const MyBookingsScreen = () => {
                       {/* Icon */}
                       <div className="w-20 h-20 rounded-xl bg-[#006948]/10 flex items-center justify-center flex-shrink-0">
                         <span className="material-symbols-outlined text-[#006948] text-4xl">
-                          {getServiceIcon(booking.service_type)}
+                            {getServiceIcon(booking.service_category)}
                         </span>
                       </div>
 
                       {/* Booking Details */}
                       <div className="flex-grow">
                         <h3 className="text-xl font-semibold text-[#191c1e] mb-2 capitalize">
-                          {booking.service_type || 'Service Booking'}
+                            {booking.service_category || 'Service Booking'}
                         </h3>
                         <div className="space-y-1 text-[#6d7a72]">
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-lg">event</span>
-                            <span>
-                              {booking.booking_date || 'Date not specified'} {booking.booking_time || ''}
-                            </span>
+                              <span>{formatBookingDateTime(booking.booking_date)}</span>
                           </div>
                           {booking.provider_id && (
                             <div className="flex items-center gap-2">
                               <span className="material-symbols-outlined text-lg">person</span>
-                              <span>Provider: {booking.provider_name || 'Pending Assignment'}</span>
+                                <span>Provider: {booking.service_provider_name || 'Pending Assignment'}</span>
                             </div>
                           )}
                           {booking.notes && (
@@ -191,26 +196,24 @@ const MyBookingsScreen = () => {
                       {/* Icon */}
                       <div className="w-20 h-20 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
                         <span className="material-symbols-outlined text-blue-600 text-4xl">
-                          {getServiceIcon(booking.service_type)}
+                          {getServiceIcon(booking.service_category)}
                         </span>
                       </div>
 
                       {/* Booking Details */}
                       <div className="flex-grow">
                         <h3 className="text-xl font-semibold text-[#191c1e] mb-2 capitalize">
-                          {booking.service_type || 'Service Booking'}
+                          {booking.service_category || 'Service Booking'}
                         </h3>
                         <div className="space-y-1 text-[#6d7a72]">
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-lg">event</span>
-                            <span>
-                              {booking.booking_date || 'Date not specified'} {booking.booking_time || ''}
-                            </span>
+                            <span>{formatBookingDateTime(booking.booking_date)}</span>
                           </div>
-                          {booking.provider_id && (
+                          {booking.service_provider_id && (
                             <div className="flex items-center gap-2">
                               <span className="material-symbols-outlined text-lg">person</span>
-                              <span>Provider: {booking.provider_name || 'Service Provider'}</span>
+                              <span>Provider: {booking.service_provider_name || 'Service Provider'}</span>
                             </div>
                           )}
                         </div>
