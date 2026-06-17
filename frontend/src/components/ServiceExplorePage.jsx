@@ -54,7 +54,8 @@ const ServiceExplorePage = ({ categoryKey, pageTitle, heroTitle, heroSubtitle, b
 
       <div className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] transition-opacity duration-300 ${isDrawerOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`} onClick={toggleDrawer} />
 
-      <aside className={`fixed left-0 top-0 h-full w-full max-w-md bg-white z-[70] shadow-2xl flex flex-col border-r border-[#bccac0] transition-transform duration-300 ease-in-out ${isDrawerOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      {/* FIXED: Added flex-shrink-0 to guarantee max-w-md maintains its shape inside the flex container */}
+      <aside className={`fixed left-0 top-0 h-full w-full max-w-md bg-white z-[70] shadow-2xl flex flex-col flex-shrink-0 border-r border-[#bccac0] transition-all duration-300 ease-in-out ${isDrawerOpen ? 'translate-x-0 block' : '-translate-x-full hidden'}`}>
         <div className="p-6 flex items-center justify-between border-b border-[#bccac0]">
           <h2 className="text-[24px] font-semibold text-[#191c1e]">Specify Request</h2>
           <button className="p-2 hover:bg-[#e0e3e5] rounded-full transition-colors" onClick={toggleDrawer}>
@@ -185,13 +186,13 @@ const ServiceExplorePage = ({ categoryKey, pageTitle, heroTitle, heroSubtitle, b
               <h2 className="text-[32px] font-semibold text-[#191c1e]">Available {categoryKey} Providers</h2>
               <p className="text-slate-600 mt-2">Browse real verified providers matching the selected service category.</p>
             </div>
-            <button
+            {/*<button
               className="flex items-center gap-2 px-6 py-2.5 rounded-full border border-[#006948] text-[#006948] font-semibold hover:bg-[#006948]/5 transition-all active:scale-95 w-fit"
               onClick={toggleDrawer}
             >
               <span className="material-symbols-outlined text-[20px]">send_time_extension</span>
               Broadcast Request
-            </button>
+            </button>*/}
           </div>
 
           {loadingProviders && (
@@ -226,7 +227,7 @@ const ServiceExplorePage = ({ categoryKey, pageTitle, heroTitle, heroSubtitle, b
         <div className="flex flex-col md:flex-row justify-between items-center px-8 py-12 max-w-7xl mx-auto space-y-4 md:space-y-0">
           <div className="flex flex-col items-center md:items-start gap-2">
             <span className="text-lg font-bold text-emerald-700">HomeHero</span>
-            <span className="text-slate-500">� 2024 HomeHero. Trusted care for your home.</span>
+            <span className="text-slate-500">© 2024 HomeHero. Trusted care for your home.</span>
           </div>
           <div className="flex flex-wrap justify-center gap-8">
             <a className="text-slate-500 hover:text-emerald-600 underline underline-offset-4 transition-opacity text-sm" href="#services">Services</a>
