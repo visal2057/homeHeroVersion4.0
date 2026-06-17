@@ -9,6 +9,8 @@ const authRoutes         = require('./routes/auth');
 const workerRoutes      = require('./routes/worker');
 const usersRoutes       = require('./routes/users');
 const bookingsRoutes    = require('./routes/bookings');
+const bookingActionsRoutes = require('./routes/bookingActions');
+const serviceProviderRoutes = require('./routes/serviceProviders');
 const announcementsRoutes = require('./routes/announcements');
 const membershipRoutes  = require('./routes/membership'); // Added membership route file reference
 
@@ -39,6 +41,8 @@ app.use('/api/auth',          authRoutes);
 app.use('/api/worker',        workerRoutes);
 app.use('/api/admin/users',   usersRoutes);
 app.use('/api/bookings',      bookingsRoutes);
+app.use('/api/service-providers', serviceProviderRoutes);
+app.use('/api/booking-actions', bookingActionsRoutes);
 app.use('/api/announcements', announcementsRoutes);
 app.use('/api/membership',    membershipRoutes); // Mounted membership endpoints cleanly to the core API
 

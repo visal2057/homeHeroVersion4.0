@@ -1,122 +1,251 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../components/AuthContext';
+import ClientHeader from '../../components/ClientHeader';
 
 const MyBookingsScreen = () => {
-  const upcomingBookings = [
-    { id: 1, service: "General Gardening", date: "Oct 24, 2024 • 09:00 AM", provider: "Aruna Perera", status: "Confirmed", icon: "yard" },
-    { id: 2, service: "Leak Repair", date: "Oct 28, 2024 • 02:30 PM", provider: "Pending Assignment", status: "Pending", icon: "plumbing" }
-  ];
-  const recentHistory = [
-    { service: "Full House Clean", date: "Oct 12 • Completed", icon: "cleaning_services" },
-    { service: "Electrical Check", date: "Sept 30 • Completed", icon: "bolt" },
-    { service: "Termite Inspection", date: "Sept 15 • Completed", icon: "pest_control" }
-  ];
+  const { user } = useAuth();
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('upcoming');
+
+  useEffect(() => {
+    fetchBookings();
+  }, [user]);
+
+  const fetchBookings = async () => {
+    if (!user || !user.userid) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/bookings?userid=${user.userid}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setBookings(data || []);
+      } else {
+        setError('Failed to fetch bookings');
+      }
+    } catch (err) {
+      setError('Error fetching bookings: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getServiceIcon = (serviceName) => {
+    const iconMap = {
+      gardening: 'yard',
+      cleaning: 'cleaning_services',
+      petcare: 'pets',
+      'ac repair': 'air',
+      handiwork: 'construction',
+      plumbing: 'plumbing_services',
+      electrical: 'bolt'
+    };
+    return iconMap[serviceName?.toLowerCase()] || 'construction';
+  };
+
+  const getStatusColor = (status) => {
+    const statusMap = {
+      confirmed: 'bg-green-100 text-green-800',
+      pending: 'bg-yellow-100 text-yellow-800',
+      completed: 'bg-blue-100 text-blue-800',
+      cancelled: 'bg-red-100 text-red-800'
+    };
+    return statusMap[status?.toLowerCase()] || 'bg-gray-100 text-gray-800';
+  };
+
+  const upcomingBookings = bookings.filter(b => b.status?.toLowerCase() !== 'completed' && b.status?.toLowerCase() !== 'cancelled') || [];
+  const completedBookings = bookings.filter(b => b.status?.toLowerCase() === 'completed') || [];
+    const formatBookingDateTime = (timestamp) => {
+      if (!timestamp) return 'Date not specified';
+      const d = new Date(timestamp);
+      const date = d.toLocaleDateString();
+      const time = d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      return `${date} ${time}`;
+    };
 
   return (
-    <div className="bg-background text-on-background font-body-md">
-      {/* Header */}
-      <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md shadow-sm">
-        <div className="flex justify-between items-center px-8 h-20 w-full max-w-[1280px] mx-auto">
-          <div className="flex items-center gap-2">
-            <Link to="/" className="text-2xl font-bold text-emerald-600">HomeHero</Link>
+    <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen flex flex-col font-['Inter']">
+      <ClientHeader pageTitle="My Bookings" />
+
+      <main className="flex-grow pt-20 pb-16 px-4 md:px-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Welcome Section */}
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-[#191c1e] mb-2">My Bookings</h1>
+            <p className="text-[#6d7a72]">Manage and track all your service bookings</p>
           </div>
-          <nav className="hidden md:flex items-center gap-6">
-            <Link to="/" className="flex items-center gap-1 text-gray-600 hover:text-emerald-600"><span className="material-symbols-outlined">home</span></Link>
-            <Link to="/notifications" className="flex items-center gap-1 text-gray-600 hover:text-emerald-600"><span className="material-symbols-outlined">notifications</span></Link>
-            <Link to="/profile" className="flex items-center gap-1 text-gray-600 hover:text-emerald-600"><span className="material-symbols-outlined">account_circle</span></Link>
-          </nav>
-        </div>
-      </header>
 
-      <main className="pt-24 pb-12 max-w-[1280px] mx-auto px-8">
-        {/* Welcome Banner */}
-        <section className="flex items-center gap-4 bg-white border border-emerald-600 p-4 rounded-xl mb-6 mt-4">
-          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
-            <span className="material-symbols-outlined text-emerald-600 text-3xl">person</span>
-          </div>
-          <h2 className="text-2xl font-semibold">Welcome Suresh Fonseka!</h2>
-        </section>
-
-        {/* My Bookings Header */}
-        <section className="pb-6 pt-2">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">My Bookings</h1>
-          <p className="text-lg text-gray-500">Manage your scheduled services and view your care history.</p>
-        </section>
-
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Upcoming Bookings */}
-          <div className="lg:col-span-8 space-y-4">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-3xl font-bold">Upcoming Bookings</h2>
-              <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-semibold">2 Active</span>
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">error</span>
+              {error}
             </div>
-            {upcomingBookings.map(booking => (
-              <div key={booking.id} className="bg-white border rounded-xl p-4 shadow-sm hover:border-emerald-500 transition-all">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-lg bg-emerald-50 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-emerald-600 text-3xl">{booking.icon}</span>
+          )}
+
+          {/* Tab Navigation */}
+          <div className="flex gap-4 mb-8 border-b border-[#bccac0]">
+            <button
+              onClick={() => setActiveTab('upcoming')}
+              className={`pb-4 px-2 font-semibold transition-colors ${
+                activeTab === 'upcoming'
+                  ? 'text-[#006948] border-b-2 border-[#006948]'
+                  : 'text-[#6d7a72] hover:text-[#191c1e]'
+              }`}
+            >
+              Upcoming ({upcomingBookings.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('completed')}
+              className={`pb-4 px-2 font-semibold transition-colors ${
+                activeTab === 'completed'
+                  ? 'text-[#006948] border-b-2 border-[#006948]'
+                  : 'text-[#6d7a72] hover:text-[#191c1e]'
+              }`}
+            >
+              Completed ({completedBookings.length})
+            </button>
+          </div>
+
+          {/* Loading State */}
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <span className="animate-spin text-4xl text-[#006948]">⏳</span>
+              <p className="text-[#6d7a72] mt-4">Loading bookings...</p>
+            </div>
+          ) : activeTab === 'upcoming' ? (
+            <div className="space-y-4">
+              {upcomingBookings.length > 0 ? (
+                upcomingBookings.map((booking) => (
+                  <div
+                    key={booking.booking_id}
+                    className="bg-white border border-[#bccac0] rounded-2xl p-6 hover:shadow-lg transition-shadow"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center gap-6">
+                      {/* Icon */}
+                      <div className="w-20 h-20 rounded-xl bg-[#006948]/10 flex items-center justify-center flex-shrink-0">
+                        <span className="material-symbols-outlined text-[#006948] text-4xl">
+                            {getServiceIcon(booking.service_category)}
+                        </span>
+                      </div>
+
+                      {/* Booking Details */}
+                      <div className="flex-grow">
+                        <h3 className="text-xl font-semibold text-[#191c1e] mb-2 capitalize">
+                            {booking.service_category || 'Service Booking'}
+                        </h3>
+                        <div className="space-y-1 text-[#6d7a72]">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">event</span>
+                              <span>{formatBookingDateTime(booking.booking_date)}</span>
+                          </div>
+                          {booking.provider_id && (
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-lg">person</span>
+                                <span>Provider: {booking.service_provider_name || 'Pending Assignment'}</span>
+                            </div>
+                          )}
+                          {booking.notes && (
+                            <div className="flex items-start gap-2 mt-2">
+                              <span className="material-symbols-outlined text-lg">note</span>
+                              <span>{booking.notes}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Status and Action */}
+                      <div className="flex flex-col items-end gap-3">
+                        <span className={`px-4 py-2 rounded-full text-sm font-semibold capitalize ${getStatusColor(booking.status)}`}>
+                          {booking.status || 'Pending'}
+                        </span>
+                        <button className="px-6 py-2 bg-[#006948] text-white rounded-lg font-semibold hover:bg-[#00855d] transition-colors">
+                          View Details
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-2xl font-semibold">{booking.service}</h3>
-                      <div className="flex items-center gap-2 text-gray-500 mt-1"><span className="material-symbols-outlined text-sm">event</span> {booking.date}</div>
-                      <div className="flex items-center gap-2 text-gray-500"><span className="material-symbols-outlined text-sm">person</span> Provider: {booking.provider}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <span className="material-symbols-outlined text-6xl text-[#bccac0] mb-4 block">event_busy</span>
+                  <p className="text-[#6d7a72] text-lg">No upcoming bookings</p>
+                  <p className="text-[#bccac0] text-sm mt-2">Browse services to create a new booking</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {completedBookings.length > 0 ? (
+                completedBookings.map((booking) => (
+                  <div
+                    key={booking.booking_id}
+                    className="bg-white border border-[#bccac0] rounded-2xl p-6 hover:shadow-lg transition-shadow opacity-75"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center gap-6">
+                      {/* Icon */}
+                      <div className="w-20 h-20 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                        <span className="material-symbols-outlined text-blue-600 text-4xl">
+                          {getServiceIcon(booking.service_category)}
+                        </span>
+                      </div>
+
+                      {/* Booking Details */}
+                      <div className="flex-grow">
+                        <h3 className="text-xl font-semibold text-[#191c1e] mb-2 capitalize">
+                          {booking.service_category || 'Service Booking'}
+                        </h3>
+                        <div className="space-y-1 text-[#6d7a72]">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">event</span>
+                            <span>{formatBookingDateTime(booking.booking_date)}</span>
+                          </div>
+                          {booking.service_provider_id && (
+                            <div className="flex items-center gap-2">
+                              <span className="material-symbols-outlined text-lg">person</span>
+                              <span>Provider: {booking.service_provider_name || 'Service Provider'}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Status */}
+                      <div className="flex flex-col items-end gap-3">
+                        <span className={`px-4 py-2 rounded-full text-sm font-semibold capitalize ${getStatusColor(booking.status)}`}>
+                          {booking.status || 'Completed'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${booking.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'}`}>{booking.status}</span>
-                    <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700">View Details</button>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <span className="material-symbols-outlined text-6xl text-[#bccac0] mb-4 block">history</span>
+                  <p className="text-[#6d7a72] text-lg">No completed bookings yet</p>
+                  <p className="text-[#bccac0] text-sm mt-2">Your completed services will appear here</p>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Recent History */}
-          <div className="lg:col-span-4 space-y-4">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-3xl font-bold">Recent History</h2>
-              <Link to="/history" className="text-emerald-600 text-sm font-semibold hover:underline">See All</Link>
+              )}
             </div>
-            <div className="bg-gray-50 rounded-xl p-4 border space-y-4">
-              {recentHistory.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-4 pb-4 border-b last:border-0">
-                  <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-emerald-600">{item.icon}</span>
-                  </div>
-                  <div className="flex-grow">
-                    <p className="font-semibold">{item.service}</p>
-                    <p className="text-sm text-gray-500">{item.date}</p>
-                  </div>
-                  <span className="material-symbols-outlined text-emerald-600">chevron_right</span>
-                </div>
-              ))}
-            </div>
-            {/* Stats Card */}
-            <div className="bg-emerald-600 p-6 rounded-xl text-white relative overflow-hidden">
-              <div className="relative z-10">
-                <p className="text-sm opacity-80 uppercase tracking-wider">Completed Services</p>
-                <h4 className="text-5xl font-bold mt-2">12</h4>
-              </div>
-              <span className="material-symbols-outlined absolute -bottom-4 -right-4 text-8xl opacity-10">task_alt</span>
-            </div>
-          </div>
+          )}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="w-full bg-gray-100 border-t mt-12">
-        <div className="flex flex-col md:flex-row justify-between items-center px-8 py-6 w-full max-w-[1280px] mx-auto gap-4">
-          <div className="flex flex-col gap-1 items-center md:items-start">
-            <span className="text-xl font-bold text-emerald-700">HomeHero</span>
-            <p className="text-sm text-gray-500">© 2024 HomeHero. Trusted Care for Every Home.</p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-6">
-            <Link to="/privacy" className="text-sm text-gray-500 hover:text-emerald-600">Privacy Policy</Link>
-            <Link to="/terms" className="text-sm text-gray-500 hover:text-emerald-600">Terms of Service</Link>
-            <Link to="/help" className="text-sm text-gray-500 hover:text-emerald-600">Help Center</Link>
-            <Link to="/contact" className="text-sm text-gray-500 hover:text-emerald-600">Contact Us</Link>
+      <footer className="bg-slate-50 font-['Inter'] text-sm w-full rounded-t-2xl border-t border-slate-200 mt-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center px-8 py-12 max-w-7xl mx-auto space-y-4 md:space-y-0">
+          <div className="flex flex-col items-center md:items-start gap-2">
+            <span className="text-lg font-bold text-emerald-700">HomeHero</span>
+            <span className="text-slate-500">© 2024 HomeHero. Trusted Care for your home.</span>
           </div>
         </div>
       </footer>

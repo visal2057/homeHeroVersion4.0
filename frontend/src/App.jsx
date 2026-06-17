@@ -13,8 +13,11 @@ import RegisteredHome from './pages/Client/RegisteredHome';
 import ClientProfileManagement from './pages/Client/ClientProfileManagement';
 import MyBookingsScreen from './pages/Client/MyBookingsScreen';
 import CommonCheckout from './pages/Client/CommonCheckout';
-import CommonExplorePage from './pages/Client/CommonExplorePage';
-import PaymentFailed from './pages/Client/PaymentFailed';
+import Gardening from './pages/Client/Explore/Gardening';
+import Cleaning from './pages/Client/Explore/Cleaning';
+import Petcare from './pages/Client/Explore/Petcare';
+import ACRepair from './pages/Client/Explore/ACRepair';
+import Handiwork from './pages/Client/Explore/Handiwork';
 import ContactUs from './pages/Client/ContactUs';
 import Careers from './pages/Client/Careers';
 import WhoWeAreRegistered from './pages/Client/WhoWeAreRegistered';
@@ -71,9 +74,13 @@ function App() {
           <Route path="/dashboard/notifications" element={<ProtectedRoute requiredRole="customer"><RegisteredHome /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute requiredRole="customer"><ClientProfileManagement /></ProtectedRoute>} />
           <Route path="/my-bookings" element={<ProtectedRoute requiredRole="customer"><MyBookingsScreen /></ProtectedRoute>} />
-          <Route path="/explore" element={<ProtectedRoute requiredRole="customer"><CommonExplorePage /></ProtectedRoute>} />
+          <Route path="/explore/gardening" element={<ProtectedRoute requiredRole="customer"><Gardening /></ProtectedRoute>} />
+          <Route path="/explore/cleaning" element={<ProtectedRoute requiredRole="customer"><Cleaning /></ProtectedRoute>} />
+          <Route path="/explore/petcare" element={<ProtectedRoute requiredRole="customer"><Petcare /></ProtectedRoute>} />
+          <Route path="/explore/ac-repair" element={<ProtectedRoute requiredRole="customer"><ACRepair /></ProtectedRoute>} />
+          <Route path="/explore/handiwork" element={<ProtectedRoute requiredRole="customer"><Handiwork /></ProtectedRoute>} />
           <Route path="/checkout" element={<ProtectedRoute requiredRole="customer"><CommonCheckout /></ProtectedRoute>} />
-          <Route path="/payment-failed" element={<ProtectedRoute requiredRole="customer"><PaymentFailed /></ProtectedRoute>} />
+          
           
           {/* Booking Routes */}
           <Route path="/booking/confirmed" element={<ProtectedRoute requiredRole="customer"><BookingConfirmed /></ProtectedRoute>} />
