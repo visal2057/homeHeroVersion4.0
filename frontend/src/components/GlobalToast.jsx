@@ -7,7 +7,7 @@ export function GlobalToast({ toast }) {
   return (
     <div 
       style={{ left: '50%', transform: 'translateX(-50%)' }}
-      className={`fixed top-5 z-50 flex items-center gap-3 px-6 py-3.5 rounded-xl shadow-xl border transition-all duration-300 ease-out w-max max-w-[90vw] ${
+      className={`fixed top-20 z-[9999] flex items-center gap-3 px-6 py-3.5 rounded-xl shadow-xl border transition-all duration-300 ease-out w-max max-w-[90vw] ${
         toast.isVisible 
           ? 'opacity-100 translate-y-0 scale-100' 
           : 'opacity-0 -translate-y-4 scale-95 pointer-events-none'
