@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../components/AuthContext';
 
 const WorkerRegister = () => {
+  const { login } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -324,10 +326,6 @@ const WorkerRegister = () => {
       
       const authToken = registerData.token;
 
-      localStorage.setItem('token', authToken);
-      localStorage.setItem('user', JSON.stringify(registerData.user));
-      localStorage.setItem('loginTime', Date.now().toString());
-      
       // Update worker details
       await fetch('http://localhost:5000/api/worker/update-details', {
         method: 'PUT',
@@ -354,7 +352,7 @@ const WorkerRegister = () => {
       
       setSuccess('Application submitted successfully! Pending verification.');
       setTimeout(() => {
-        navigate('/auth/pending');
+        login(authToken, registerData.user, '/auth/pending');
       }, 2000);
       
     } catch (err) {

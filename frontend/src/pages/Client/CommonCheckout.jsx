@@ -1,136 +1,220 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../components/AuthContext';
+import ClientHeader from '../../components/ClientHeader';
+import { API_BASE } from '../../config/api';
 
 const CommonCheckout = () => {
-  const [selectedSlot, setSelectedSlot] = useState(null);
-  const timeSlots = [
-    { time: "Morning: 09:00 AM - 12:00 PM", value: "morning" },
-    { time: "Afternoon: 01:00 PM - 04:00 PM", value: "afternoon" },
-    { time: "Evening: 04:00 PM - 07:00 PM", value: "evening" },
-    { time: "Full Day: 09:00 AM - 05:00 PM", value: "full" }
-  ];
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [jobDescription, setJobDescription] = useState('');
+  const [bookingDate, setBookingDate] = useState('');
+  const [bookingTime, setBookingTime] = useState('');
+  const [address, setAddress] = useState(user?.district || '');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const selectTimeSlot = (slotValue) => {
-    setSelectedSlot(slotValue);
+  const providerId = searchParams.get('providerId') || '';
+  const providerName = searchParams.get('providerName') || '';
+  const serviceCategory = searchParams.get('category') || '';
+
+  const handleConfirmBooking = async () => {
+    setErrorMessage('');
+
+    if (!providerId || !providerName || !serviceCategory) {
+      setErrorMessage('Please select a provider from the service listing before continuing to checkout.');
+      return;
+    }
+
+    if (!bookingDate || !bookingTime || !address || !jobDescription) {
+      setErrorMessage('Please complete all fields before submitting your booking.');
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setErrorMessage('Authentication error. Please log in again.');
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const response = await fetch(`${API_BASE}/api/booking-actions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          service_provider_id: providerId,
+          service_provider_name: providerName,
+          service_category: serviceCategory,
+          job_type: 'Direct job',
+          job_description: jobDescription,
+          booking_date: bookingDate,
+          booking_time: bookingTime,
+          address
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setErrorMessage(data.error || 'Unable to create booking. Please try again.');
+        setSubmitting(false);
+        return;
+      }
+
+      navigate('/booking/confirmed');
+    } catch (error) {
+      console.error('Checkout booking error:', error);
+      setErrorMessage('Unable to submit booking. Please try again later.');
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div className="bg-surface font-body-md text-on-surface min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-sm">
-        <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="text-2xl font-bold text-emerald-700">HomeHero</Link>
-            <div className="h-8 w-px bg-gray-300"></div>
-            <span className="text-lg font-medium text-gray-600">Gardening</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-8">
-            <Link to="/" className="flex items-center gap-2 text-emerald-600 border-b-2 border-emerald-600 pb-1">
-              <span className="material-symbols-outlined">home</span>
-            </Link>
-            <Link to="/notifications" className="flex items-center gap-2 text-slate-600 hover:text-emerald-600">
-              <span className="material-symbols-outlined">notifications</span>
-            </Link>
-            <Link to="/profile" className="flex items-center gap-2 text-slate-600 hover:text-emerald-600">
-              <span className="material-symbols-outlined">account_circle</span>
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      <main className="flex-grow pt-32 pb-20 px-6 flex justify-center">
-        <div className="w-full max-w-3xl">
-          <div className="mb-6">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Book Your Professional</h1>
-            <p className="text-lg text-gray-500">Complete the details below to schedule your gardening service.</p>
-          </div>
-
-          <div className="space-y-6">
-            {/* Booking For */}
-            <section className="bg-white p-6 rounded-xl border shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-emerald-100 flex items-center justify-center rounded-full">
-                  <span className="material-symbols-outlined text-emerald-600 text-4xl">person</span>
-                </div>
+    <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen flex flex-col font-['Inter'] relative overflow-x-hidden">
+      <ClientHeader pageTitle="Checkout" />
+      <main className="flex-grow pt-20 pb-20 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto w-full max-w-4xl">
+          <section className="mb-10 rounded-[32px] border border-[#d9e3db] bg-white p-8 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.22em] text-[#006948] font-semibold">Checkout</p>
+                <h1 className="mt-3 text-4xl font-bold tracking-tight text-[#191c1e]">Confirm your booking details</h1>
+                <p className="mt-2 text-base text-[#3d4a42]">Your selected service provider and category are preloaded from the previous page.</p>
+              </div>
+              <div className="inline-flex items-center gap-3 rounded-full border border-[#e2e8f0] bg-[#f8fafc] px-5 py-3">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#006948] text-white">{user?.username?.charAt(0)?.toUpperCase() || 'C'}</span>
                 <div>
-                  <p className="text-xs uppercase tracking-wider text-gray-500">Booking for</p>
-                  <h2 className="text-2xl font-semibold text-gray-900">Aruna Perera</h2>
-                  <p className="font-semibold text-emerald-600">Senior Landscape Architect</p>
+                  <p className="text-sm font-medium text-[#191c1e]">{user?.username || user?.email || 'HomeHero Client'}</p>
+                  <p className="text-xs text-[#6b7280]">Logged in as client</p>
                 </div>
               </div>
-            </section>
+            </div>
+          </section>
 
-            {/* Request Details */}
-            <section className="bg-white p-6 rounded-xl border shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="material-symbols-outlined text-emerald-600">edit_note</span>
-                <h3 className="text-2xl font-semibold">Request Details</h3>
-              </div>
-              <textarea className="w-full p-4 border rounded-lg focus:ring-2 focus:ring-emerald-500" placeholder="Please describe the specifics of the job here..." rows="4"></textarea>
-            </section>
-
-            {/* Time Slots */}
-            <section className="bg-white p-6 rounded-xl border shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="material-symbols-outlined text-emerald-600">schedule</span>
-                <h3 className="text-2xl font-semibold">Reserve time slot</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {timeSlots.map((slot) => (
-                  <button key={slot.value} onClick={() => selectTimeSlot(slot.value)} className={`flex items-center justify-between p-4 border rounded-lg hover:border-emerald-500 transition-all group ${selectedSlot === slot.value ? 'bg-emerald-600 text-white border-emerald-600' : ''}`}>
-                    <span className="font-semibold">{slot.time}</span>
-                    <span className="material-symbols-outlined text-gray-400 group-hover:text-emerald-500">check_circle</span>
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            {/* Service Location */}
-            <section className="bg-white p-6 rounded-xl border shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="material-symbols-outlined text-emerald-600">location_on</span>
-                <h3 className="text-2xl font-semibold">Service Location</h3>
-              </div>
-              <div className="mb-4">
-                <label className="block font-semibold text-gray-700 mb-1">Home Address</label>
-                <div className="relative">
-                  <input className="w-full pl-10 pr-4 py-3 border rounded-lg" type="text" value="42 Emerald Lane, Green Valley, CA 90210" />
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">search</span>
-                </div>
-              </div>
-              <div className="relative h-64 w-full rounded-lg overflow-hidden bg-gray-100">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="bg-emerald-600 text-white p-2 rounded-full shadow-lg">
-                    <span className="material-symbols-outlined text-4xl">location_on</span>
+          <section className="space-y-8">
+            <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+              <div className="space-y-6 rounded-[32px] border border-[#d9e3db] bg-white p-8 shadow-sm">
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm uppercase tracking-[0.2em] text-[#6d7a72] font-semibold">Booking for</p>
+                    <h2 className="mt-3 text-2xl font-semibold text-[#191c1e]">{providerName || 'No provider selected'}</h2>
+                    <p className="text-sm text-[#006948] font-semibold">{serviceCategory || 'Unknown service category'}</p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-3xl border border-[#e2e8f0] bg-[#f8fafc] p-5">
+                      <p className="text-sm text-[#6b7280]">Client</p>
+                      <p className="mt-2 font-semibold text-[#191c1e]">{user?.username || user?.email || 'Client User'}</p>
+                    </div>
+                    <div className="rounded-3xl border border-[#e2e8f0] bg-[#f8fafc] p-5">
+                      <p className="text-sm text-[#6b7280]">Booking type</p>
+                      <p className="mt-2 font-semibold text-[#191c1e]">Direct job</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </section>
 
-            {/* Confirm Button */}
-            <button className="w-full bg-emerald-600 text-white py-5 rounded-xl font-semibold hover:bg-emerald-700 transition-all shadow-lg flex items-center justify-center gap-4">
-              Confirm Booking <span className="material-symbols-outlined">arrow_forward</span>
-            </button>
-          </div>
+                <div className="space-y-5">
+                  <div>
+                    <label htmlFor="request-details" className="text-sm font-medium text-[#3d4a42]">Request Details</label>
+                    <textarea
+                      id="request-details"
+                      rows={5}
+                      value={jobDescription}
+                      onChange={(e) => setJobDescription(e.target.value)}
+                      className="mt-3 w-full rounded-3xl border border-[#d9e3db] bg-[#f8fafc] p-5 text-sm text-[#191c1e] outline-none transition focus:border-[#006948] focus:ring-2 focus:ring-[#d6f5e8]"
+                      placeholder="Describe the work you want the provider to do..."
+                    />
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label htmlFor="booking-date" className="text-sm font-medium text-[#3d4a42]">Booking Date</label>
+                      <input
+                        id="booking-date"
+                        type="date"
+                        value={bookingDate}
+                        onChange={(e) => setBookingDate(e.target.value)}
+                        className="mt-3 w-full rounded-3xl border border-[#d9e3db] bg-[#f8fafc] p-4 text-sm text-[#191c1e] outline-none transition focus:border-[#006948] focus:ring-2 focus:ring-[#d6f5e8]"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="booking-time" className="text-sm font-medium text-[#3d4a42]">Booking Time</label>
+                      <input
+                        id="booking-time"
+                        type="time"
+                        value={bookingTime}
+                        onChange={(e) => setBookingTime(e.target.value)}
+                        className="mt-3 w-full rounded-3xl border border-[#d9e3db] bg-[#f8fafc] p-4 text-sm text-[#191c1e] outline-none transition focus:border-[#006948] focus:ring-2 focus:ring-[#d6f5e8]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="booking-address" className="text-sm font-medium text-[#3d4a42]">Service Address</label>
+                    <input
+                      id="booking-address"
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Enter your service address"
+                      className="mt-3 w-full rounded-3xl border border-[#d9e3db] bg-[#f8fafc] p-4 text-sm text-[#191c1e] outline-none transition focus:border-[#006948] focus:ring-2 focus:ring-[#d6f5e8]"
+                    />
+                  </div>
+                </div>
+
+                {errorMessage && (
+                  <div className="rounded-3xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">{errorMessage}</div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleConfirmBooking}
+                  disabled={submitting}
+                  className="w-full rounded-3xl bg-[#006948] px-6 py-4 text-lg font-semibold text-white transition hover:bg-[#00855d] disabled:cursor-not-allowed disabled:bg-slate-400"
+                >
+                  {submitting ? 'Submitting booking...' : 'Confirm Booking'}
+                </button>
+              </div>
+
+              <aside className="space-y-6 rounded-[32px] border border-[#d9e3db] bg-[#f6fff6] p-8 shadow-sm">
+                <div className="rounded-3xl bg-white p-6 shadow-sm border border-[#e2e8f0]">
+                  <p className="text-sm uppercase tracking-[0.2em] text-[#6d7a72] font-semibold">Booking Summary</p>
+                  <div className="mt-6 space-y-4 text-sm text-[#3d4a42]">
+                    <div className="flex justify-between gap-4">
+                      <span className="font-medium">Client</span>
+                      <span>{user?.username || user?.email || 'Client User'}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="font-medium">Provider</span>
+                      <span>{providerName || 'Not selected'}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="font-medium">Service</span>
+                      <span>{serviceCategory || 'Not selected'}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="font-medium">Job type</span>
+                      <span>Direct job</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="font-medium">Status</span>
+                      <span className="text-[#006948] font-semibold">Pending</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="rounded-3xl border border-[#e2e8f0] bg-white p-6 text-sm text-[#3d4a42]">
+                  <p className="font-semibold text-[#191c1e]">Need help?</p>
+                  <p className="mt-3 leading-6">If your selected provider is unavailable, the booking can still be reviewed and reassigned by our service team. Make sure your details are accurate before confirming.</p>
+                </div>
+              </aside>
+            </div>
+          </section>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="rounded-t-2xl bg-gray-50 border-t border-gray-200 py-8 mt-8">
-        <div className="flex flex-col md:flex-row justify-between items-center px-8 max-w-7xl mx-auto gap-4">
-          <div>
-            <span className="text-lg font-bold text-emerald-700">HomeHero</span>
-            <p className="text-gray-500 text-sm">© 2024 HomeHero Gardening. Trusted Care for your home.</p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-6">
-            <Link to="/services" className="text-gray-500 text-sm hover:text-emerald-600">Services</Link>
-            <Link to="/providers" className="text-gray-500 text-sm hover:text-emerald-600">Top Providers</Link>
-            <Link to="/join" className="text-gray-500 text-sm hover:text-emerald-600">Join as Pro</Link>
-            <Link to="/privacy" className="text-gray-500 text-sm hover:text-emerald-600">Privacy Policy</Link>
-            <Link to="/terms" className="text-gray-500 text-sm hover:text-emerald-600">Terms of Service</Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

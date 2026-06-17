@@ -6,7 +6,11 @@ const {
     loginUser,
     googleLogin,
     healthCheck,
-    getLoginAttempts
+    getLoginAttempts,
+    forgotPassword,
+    resendOtp,
+    verifyOtp,
+    resetPassword
 } = require('../controllers/AuthController');
 
 // Customer Sign Up
@@ -20,6 +24,12 @@ router.post('/login', loginUser);
 
 // Google OAuth Login
 router.post('/google', googleLogin);
+
+// Password reset / OTP support
+router.post('/forgot-password', forgotPassword);
+router.post('/resend-otp', resendOtp);
+router.post('/verify-otp', verifyOtp);
+router.post('/reset-password', resetPassword);
 
 // Get login attempts history
 router.get('/login-attempts/:userId', getLoginAttempts);

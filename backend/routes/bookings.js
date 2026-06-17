@@ -5,23 +5,35 @@ const { pool } = require('../config/db');
 // GET all bookings
 router.get('/', async (req, res) => {
     try {
-        const queryText = `
+        // Allow optional filtering by client user id
+        let baseQuery = `
             SELECT
                 booking_id,
                 booking_reference,
                 service_category,
                 job_type,
+                client_id,
                 client_name,
+                service_provider_id,
                 COALESCE(service_provider_name, 'Unassigned') AS service_provider_name,
                 job_description,
+                address,
                 status,
                 booking_date,
                 created_at,
                 updated_at
             FROM bookings
-            ORDER BY created_at DESC;
         `;
-        const { rows } = await pool.query(queryText);
+
+        const params = [];
+        if (req.query && req.query.userid) {
+            params.push(req.query.userid);
+            baseQuery += ' WHERE client_id = $1';
+        }
+
+        baseQuery += ' ORDER BY created_at DESC';
+
+        const { rows } = await pool.query(baseQuery, params);
         res.json(rows);
     } catch (error) {
         console.error('Error fetching bookings:', error.message);

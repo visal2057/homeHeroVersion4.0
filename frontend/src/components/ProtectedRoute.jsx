@@ -1,64 +1,79 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from './AuthContext'; // Read from our newly created shared context
+
+const normalizeRole = (role) => String(role || '').toLowerCase();
 
 const getDashboardForRole = (role) => {
-    if (role === 'SYSTEM_ADMIN') return '/admin/system';
-    if (role === 'VERIFICATION_ADMIN') return '/admin/verify';
-    if (role === 'provider') return '/auth/sp-dashboard';
-    if (role === 'customer' || role === 'client') return '/dashboard';
+    const normalized = normalizeRole(role);
+    if (normalized === 'system_admin') return '/admin/system';
+    if (normalized === 'verification_admin') return '/admin/verify';
+    if (normalized === 'provider' || normalized === 'service_provider') return '/provider/dashboard';
+    if (normalized === 'customer' || normalized === 'client') return '/dashboard';
     return '/login';
 };
 
-const canAccess = (userRole, requiredRole) => {
-    if (!requiredRole) return true;
+const canAccess = (userRole, requiredRole, allowRoles) => {
+    if (!requiredRole && !allowRoles) return true;
 
-    const allowed = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
-    if (allowed.includes(userRole)) return true;
-    if (userRole === 'SYSTEM_ADMIN') return true;
+    const normalizedUserRole = normalizeRole(userRole);
+    const allowed = allowRoles
+        ? (Array.isArray(allowRoles) ? allowRoles : [allowRoles])
+        : (Array.isArray(requiredRole) ? requiredRole : [requiredRole]);
+
+    const normalizedAllowed = allowed.map(normalizeRole);
+
+    if (normalizedAllowed.includes(normalizedUserRole)) return true;
+    if (normalizedUserRole === 'system_admin') return true; // System admins get master bypass
     return false;
 };
 
-const ProtectedRoute = ({ children, requiredRole }) => {
+const ProtectedRoute = ({ children, requiredRole, allowRoles }) => {
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true);
+    const { user, loading, logout } = useAuth(); // Destructure state values directly from context
     const [authorized, setAuthorized] = useState(false);
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        // If the context is still reading the browser storage on page refresh, wait.
+        if (loading) return;
 
-        if (!token || !user) {
+        // 1. If no user state profile is found, kick them out to login
+        if (!user) {
             navigate('/login');
             return;
         }
 
+        // 2. Token Lifetime check (7-day safety check from your original setup)
         const loginTime = localStorage.getItem('loginTime');
         if (loginTime) {
             const sevenDays = 7 * 24 * 60 * 60 * 1000;
             if (Date.now() - parseInt(loginTime, 10) > sevenDays) {
-                localStorage.clear();
-                navigate('/login');
+                logout(); // Clears all storage keys and redirects safely
                 return;
             }
         }
 
-        if (!canAccess(user.role, requiredRole)) {
+        // 3. Permission Role Validation Check
+        if (!canAccess(user.role, requiredRole, allowRoles)) {
+            // Kick them back to their designated homepage layout
             navigate(getDashboardForRole(user.role));
             return;
         }
 
+        // Everything looks perfect, flag them as allowed!
         setAuthorized(true);
-        setLoading(false);
-    }, [navigate, requiredRole]);
+    }, [user, loading, navigate, requiredRole, logout]);
 
+    // Show a clean loading spinner/text while checking credentials
     if (loading || !authorized) {
         return (
-            <div className="flex justify-center items-center h-screen text-lg text-slate-500">
-                Loading...
+            <div className="flex justify-center items-center h-screen text-lg text-slate-500 font-medium">
+                Verifying permissions...
             </div>
         );
     }
 
+    // Render the dashboard children elements securely
     return children;
 };
 

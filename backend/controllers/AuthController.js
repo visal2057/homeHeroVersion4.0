@@ -1,10 +1,17 @@
 const { pool } = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'homehero_secret_key_2026';
 const MAX_LOGIN_ATTEMPTS = 3;
 const LOCK_TIME_MINUTES = 30;
+
+const otpStore = new Map();
+const resetTokenStore = new Map();
+
+const generateOtpCode = () => Math.floor(100000 + Math.random() * 900000).toString();
+const generateResetToken = () => crypto.randomBytes(20).toString('hex');
 
 // ============================================
 // LOG LOGIN ATTEMPTS
@@ -161,6 +168,105 @@ const loginUser = async (req, res) => {
     } catch (error) {
         console.error('Login error:', error);
         return res.status(500).json({ message: 'Internal server error.' });
+    }
+};
+
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+    }
+
+    try {
+        const userResult = await pool.query('SELECT userid FROM users WHERE LOWER(email) = LOWER($1)', [email]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Email not found' });
+        }
+
+        const otp = generateOtpCode();
+        otpStore.set(`${email}:password_reset`, {
+            code: otp,
+            expiresAt: Date.now() + 10 * 60 * 1000
+        });
+
+        return res.status(200).json({ message: 'Password reset OTP sent to email', otp });
+    } catch (error) {
+        console.error('Forgot password error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const resendOtp = async (req, res) => {
+    const { email, type } = req.body;
+    if (!email || !type) {
+        return res.status(400).json({ error: 'Email and type are required' });
+    }
+
+    const otp = generateOtpCode();
+    otpStore.set(`${email}:${type}`, {
+        code: otp,
+        expiresAt: Date.now() + 10 * 60 * 1000
+    });
+
+    return res.status(200).json({ message: 'OTP resent successfully', otp });
+};
+
+const verifyOtp = async (req, res) => {
+    const { email, otp, type } = req.body;
+    if (!email || !otp || !type) {
+        return res.status(400).json({ error: 'Email, OTP, and type are required' });
+    }
+
+    const entry = otpStore.get(`${email}:${type}`);
+    if (!entry || entry.code !== otp || Date.now() > entry.expiresAt) {
+        return res.status(400).json({ error: 'Invalid or expired OTP' });
+    }
+
+    otpStore.delete(`${email}:${type}`);
+
+    if (type === 'password_reset') {
+        const resetToken = generateResetToken();
+        resetTokenStore.set(resetToken, {
+            email,
+            expiresAt: Date.now() + 30 * 60 * 1000
+        });
+        return res.status(200).json({ message: 'OTP verified', resetToken });
+    }
+
+    try {
+        await pool.query(
+            'UPDATE users SET status = $1 WHERE LOWER(email) = LOWER($2)',
+            ['ACTIVE', email]
+        );
+        return res.status(200).json({ message: 'OTP verified successfully' });
+    } catch (error) {
+        console.error('Verify OTP update error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    const { resetToken, new_password } = req.body;
+    if (!resetToken || !new_password) {
+        return res.status(400).json({ error: 'Reset token and new password are required' });
+    }
+
+    const entry = resetTokenStore.get(resetToken);
+    if (!entry || Date.now() > entry.expiresAt) {
+        return res.status(400).json({ error: 'Invalid or expired reset token' });
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(new_password, 10);
+        await pool.query(
+            'UPDATE users SET password = $1, status = $2 WHERE LOWER(email) = LOWER($3)',
+            [hashedPassword, 'ACTIVE', entry.email]
+        );
+        resetTokenStore.delete(resetToken);
+        return res.status(200).json({ message: 'Password reset successful' });
+    } catch (error) {
+        console.error('Reset password error:', error);
+        return res.status(500).json({ error: 'Internal server error' });
     }
 };
 
@@ -673,6 +779,10 @@ module.exports = {
     providerSignUp,
     customerSignUp,
     loginUser,
+    forgotPassword,
+    resendOtp,
+    verifyOtp,
+    resetPassword,
     getUserProfile,
     getAllClients,
     getAllProviders,
