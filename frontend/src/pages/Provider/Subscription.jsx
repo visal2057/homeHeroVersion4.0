@@ -2,6 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../components/AuthContext';
+import { GlobalToast } from '../../components/GlobalToast';
+
+// Add these utility functions right after your imports
+const formatCardNumber = (value) => {
+  const cleaned = value.replace(/\D/g, '');
+  const limited = cleaned.slice(0, 16);
+  const groups = limited.match(/.{1,4}/g) || [];
+  return groups.join(' ');
+};
+
+const formatExpiryDate = (value) => {
+  const cleaned = value.replace(/\D/g, '');
+  const limited = cleaned.slice(0, 4);
+  if (limited.length >= 3) {
+    return `${limited.slice(0, 2)}/${limited.slice(2)}`;
+  }
+  return limited;
+};
+
+
 
 const Membership = () => {
   const { user, token } = useAuth();
@@ -10,6 +30,14 @@ const Membership = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [loadingPage, setLoadingPage] = useState(true);
+
+  // Toast notification state
+  const [toast, setToast] = useState({
+    show: false,
+    isVisible: false,
+    type: 'success', // 'success' or 'error'
+    message: ''
+  });
 
   // Dynamic state placeholders replacing old static mock arrays
   const [membership, setMembership] = useState(null);
@@ -68,9 +96,12 @@ const Membership = () => {
     { label: 'Membership', icon: 'card_membership', path: '/membership', active: true }
   ];
 
-  // Helper functions to control scroll lock on modal toggle
-  const openModal = () => {
-    setIsModalOpen(true);
+  // Helper function to control scroll lock on modal toggle
+  const openModal = () => {    // Check if a plan is already active
+    if (membership?.status === 'ACTIVE') {
+      showToast('You already have an active subscription. Wait until it expires or contact support to upgrade.', 'error');
+      return;
+    }    setIsModalOpen(true);
     document.body.style.overflow = 'hidden';
   };
 
@@ -78,6 +109,26 @@ const Membership = () => {
     setIsModalOpen(false);
     setIsProcessing(false);
     document.body.style.overflow = 'auto';
+  };
+
+  // Helper function to show toast notifications
+  const showToast = (message, type = 'success') => {
+    setToast({
+      show: true,
+      isVisible: true,
+      type,
+      message
+    });
+
+    // Auto-hide after 4 seconds
+    const timeoutId = setTimeout(() => {
+      setToast(prev => ({ ...prev, isVisible: false }));
+      setTimeout(() => {
+        setToast(prev => ({ ...prev, show: false }));
+      }, 300);
+    }, 4000);
+
+    return () => clearTimeout(timeoutId);
   };
 
   // Keyboard shortcut listener to clear overlay on Escape press
@@ -96,6 +147,74 @@ const Membership = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
+  // Add these handlers after your existing handleInputChange function
+const handleCardNumberChange = (e) => {
+  const rawValue = e.target.value;
+  const digitsOnly = rawValue.replace(/\s/g, '');
+  if (digitsOnly.length > 16) return;
+  const formatted = formatCardNumber(digitsOnly);
+  setFormData({
+    ...formData,
+    cardNumber: formatted
+  });
+};
+
+const handleExpiryChange = (e) => {
+  const rawValue = e.target.value;
+  const digitsOnly = rawValue.replace(/\//g, '');
+  if (digitsOnly.length > 4) return;
+  const formatted = formatExpiryDate(digitsOnly);
+  setFormData({
+    ...formData,
+    expiryDate: formatted
+  });
+};
+
+const handleCardNumberPaste = (e) => {
+  e.preventDefault();
+  const pastedData = e.clipboardData.getData('text');
+  const digitsOnly = pastedData.replace(/\D/g, '');
+  const limited = digitsOnly.slice(0, 16);
+  const formatted = formatCardNumber(limited);
+  setFormData({
+    ...formData,
+    cardNumber: formatted
+  });
+};
+
+const handleExpiryPaste = (e) => {
+  e.preventDefault();
+  const pastedData = e.clipboardData.getData('text');
+  const digitsOnly = pastedData.replace(/\D/g, '');
+  const limited = digitsOnly.slice(0, 4);
+  const formatted = formatExpiryDate(limited);
+  setFormData({
+    ...formData,
+    expiryDate: formatted
+  });
+};
+
+const handleCardNumberKeyDown = (e) => {
+  const { value } = e.target;
+  const cursorPosition = e.target.selectionStart;
+  
+  if (e.key === 'Backspace') {
+    const charsBeforeCursor = value.slice(0, cursorPosition);
+    if (charsBeforeCursor.endsWith(' ')) {
+      e.preventDefault();
+      const newValue = value.slice(0, cursorPosition - 1) + value.slice(cursorPosition);
+      setFormData({
+        ...formData,
+        cardNumber: newValue
+      });
+      setTimeout(() => {
+        e.target.selectionStart = cursorPosition - 1;
+        e.target.selectionEnd = cursorPosition - 1;
+      }, 0);
+    }
+  }
+};
 
   // Submission network execution post handler logic
   const handlePaymentSubmit = async (e) => {
@@ -119,6 +238,9 @@ const Membership = () => {
         }
       });
       
+      // Show success notification
+      showToast('✓ Payment successful! Your subscription has been renewed.', 'success');
+      
       closeModal();
       setFormData({ cardholderName: '', cardNumber: '', expiryDate: '', cvc: '' });
       setLoadingPage(true);
@@ -126,8 +248,12 @@ const Membership = () => {
       // Reload and re-populate the tables dynamically 
       await fetchMembershipData();
     } catch (err) {
+      const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred';
       console.error("Payment processing transaction failure:", err.response?.data || err.message);
-      alert("Failed to confirm your subscription. Check backend pipeline logs.");
+      
+      // Show error notification
+      showToast(`✕ Payment failed: ${errorMessage}`, 'error');
+      
       setIsProcessing(false);
     }
   };
@@ -149,6 +275,9 @@ const Membership = () => {
 
   return (
     <div className="bg-background min-h-screen text-on-surface antialiased flex flex-col relative">
+      
+      {/* Toast Notification */}
+      <GlobalToast toast={toast} />
       
       {/* ── TOP NAVIGATION BAR ── */}
       <nav className="fixed top-0 w-full z-50 backdrop-blur-md bg-surface/80 border-b border-outline-variant/30 shadow-sm">
@@ -414,14 +543,16 @@ const Membership = () => {
                   <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Card Number</label>
                   <div className="relative">
                     <input 
-                      name="cardNumber"
-                      value={formData.cardNumber}
-                      onChange={handleInputChange}
-                      className="w-full border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 pr-10 text-sm transition-all" 
-                      placeholder="0000 0000 0000 0000" 
-                      type="text"
-                      maxLength="19"
-                      required
+                    name="cardNumber"
+                    value={formData.cardNumber}
+                    onChange={handleCardNumberChange}
+                    onPaste={handleCardNumberPaste}
+                    onKeyDown={handleCardNumberKeyDown}
+                    className="w-full border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 pr-10 text-sm transition-all font-mono tracking-wider" 
+                    placeholder="0000 0000 0000 0000" 
+                    type="text"
+                    maxLength="19"
+                    required
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex text-on-surface-variant opacity-60 pointer-events-none">
                       <span className="material-symbols-outlined">credit_card</span>
@@ -433,27 +564,28 @@ const Membership = () => {
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Expiry Date</label>
                     <input 
-                      name="expiryDate"
-                      value={formData.expiryDate}
-                      onChange={handleInputChange}
-                      className="w-full border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-sm transition-all" 
-                      placeholder="MM/YY" 
-                      type="text"
-                      maxLength="5"
-                      required
+                    name="expiryDate"
+                    value={formData.expiryDate}
+                    onChange={handleExpiryChange}
+                    onPaste={handleExpiryPaste}
+                    className="w-full border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-sm transition-all font-mono" 
+                    placeholder="MM/YY" 
+                    type="text"
+                    maxLength="5"
+                    required
                     />
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-bold text-on-surface uppercase tracking-wider">CVC</label>
                     <input 
-                      name="cvc"
-                      value={formData.cvc}
-                      onChange={handleInputChange}
-                      className="w-full border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-sm transition-all" 
-                      placeholder="•••" 
-                      type="password"
-                      maxLength="4"
-                      required
+                    name="cvc"
+                    value={formData.cvc}
+                    onChange={handleInputChange}
+                    className="w-full border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-sm transition-all font-mono" 
+                    placeholder="•••" 
+                    type="password"
+                    maxLength="4"
+                    required
                     />
                   </div>
                 </div>
