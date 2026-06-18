@@ -171,6 +171,9 @@ const loginUser = async (req, res) => {
     }
 };
 
+// ============================================
+// FORGOT PASSWORD
+// ============================================
 const forgotPassword = async (req, res) => {
     const { email } = req.body;
     if (!email) {
@@ -196,6 +199,9 @@ const forgotPassword = async (req, res) => {
     }
 };
 
+// ============================================
+// RESEND OTP
+// ============================================
 const resendOtp = async (req, res) => {
     const { email, type } = req.body;
     if (!email || !type) {
@@ -211,6 +217,9 @@ const resendOtp = async (req, res) => {
     return res.status(200).json({ message: 'OTP resent successfully', otp });
 };
 
+// ============================================
+// VERIFY OTP
+// ============================================
 const verifyOtp = async (req, res) => {
     const { email, otp, type } = req.body;
     if (!email || !otp || !type) {
@@ -245,6 +254,9 @@ const verifyOtp = async (req, res) => {
     }
 };
 
+// ============================================
+// RESET PASSWORD
+// ============================================
 const resetPassword = async (req, res) => {
     const { resetToken, new_password } = req.body;
     if (!resetToken || !new_password) {
@@ -271,118 +283,44 @@ const resetPassword = async (req, res) => {
 };
 
 // ============================================
-// SERVICE PROVIDER SIGN UP (MAX 2 CATEGORIES)
-// ============================================
-const providerSignUp = async (req, res) => {
-    const {
-        full_name, email, phone, password, district,
-        categories, service_areas, nic_number,
-        police_station, police_report_date
-    } = req.body;
-
-    console.log('📝 Provider Signup:', { full_name, email, phone, categories });
-
-    // ===== VALIDATIONS =====
-    // 1. Name - Letters only (no numbers)
-    const nameRegex = /^[a-zA-Z\s]{2,50}$/;
-    if (!nameRegex.test(full_name.trim())) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'Name can only contain letters (no numbers)' 
-        });
-    }
-
-    // 2. Categories - Max 2
-    if (!categories || categories.length === 0 || categories.length > 2) {
-        return res.status(400).json({ 
-            success: false, 
-            message: 'Please select 1-2 categories only' 
-        });
-    }
-
-    // 3. Required fields
-    if (!full_name || !email || !phone || !password || !district) {
-        return res.status(400).json({ success: false, message: 'All required fields are required' });
-    }
-
-    try {
-        const emailCheck = await pool.query('SELECT userid FROM users WHERE email = $1', [email.toLowerCase()]);
-        if (emailCheck.rows.length > 0) {
-            return res.status(400).json({ success: false, message: 'Email already registered' });
-        }
-
-        const nameParts = full_name.trim().split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-        const username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const uniqueToken = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-        await pool.query('BEGIN');
-
-        const userResult = await pool.query(
-            `INSERT INTO users (username, email, password, role, status, unique_token, phone, first_name, last_name, district, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-             RETURNING userid, username, email, role`,
-            [username, email.toLowerCase(), hashedPassword, 'provider', 'PENDING_REVIEW', uniqueToken, phone, firstName, lastName, district]
-        );
-
-        const newUser = userResult.rows[0];
-
-        await pool.query(
-            `INSERT INTO worker_profiles (user_id, nic_number, police_station, police_report_date, verification_status, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, 'PENDING_REVIEW', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-            [newUser.userid, nic_number, police_station, police_report_date]
-        );
-
-        const categoryStr = (categories && categories.length > 0) ? categories.join(', ') : 'General';
-        await pool.query(
-            `INSERT INTO service_providers (userid, category, is_verified, is_online, rejected_requests, completed_jobs, cancelled_jobs)
-             VALUES ($1, $2, false, false, 0, 0, 0)`,
-            [newUser.userid, categoryStr]
-        );
-
-        await pool.query('COMMIT');
-
-        const token = jwt.sign(
-            { userId: newUser.userid, email: newUser.email, role: newUser.role },
-            JWT_SECRET,
-            { expiresIn: '7d' }
-        );
-
-        return res.status(201).json({
-            success: true,
-            message: 'Provider registration successful! Pending verification.',
-            token: token,
-            user: {
-                id: newUser.userid,
-                username: newUser.username,
-                email: newUser.email,
-                role: newUser.role,
-                full_name: full_name
-            }
-        });
-
-    } catch (error) {
-        await pool.query('ROLLBACK');
-        console.error('Provider signup error:', error);
-        return res.status(500).json({ success: false, message: 'Database error: ' + error.message });
-    }
-};
-
-// ============================================
-// CUSTOMER SIGN UP
+// CUSTOMER SIGN UP - UPDATED VALIDATIONS
 // ============================================
 const customerSignUp = async (req, res) => {
     const { full_name, email, phone, password } = req.body;
 
-    // Name validation - Letters only
+    // ===== VALIDATIONS =====
+    // 1. Full Name - Letters and spaces only (2-50 chars)
     const nameRegex = /^[a-zA-Z\s]{2,50}$/;
-    if (!nameRegex.test(full_name.trim())) {
+    if (!full_name || !nameRegex.test(full_name.trim())) {
         return res.status(400).json({ 
             success: false, 
-            message: 'Name can only contain letters (no numbers)' 
+            message: 'Name can only contain letters and spaces (min 2 characters)' 
+        });
+    }
+
+    // 2. Email - Valid email structure (lowercase only)
+    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
+    if (!email || !emailRegex.test(email.toLowerCase())) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Please enter a valid email address (e.g., @example.com)' 
+        });
+    }
+
+    // 3. Phone - Exactly 10 digits
+    const phoneRegex = /^\d{10}$/;
+    if (!phone || !phoneRegex.test(phone)) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Phone number must be exactly 10 digits' 
+        });
+    }
+
+    // 4. Password - Min 6 chars, no spaces
+    if (!password || password.length < 6 || /\s/.test(password)) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Password must be at least 6 characters (no spaces allowed)' 
         });
     }
 
@@ -441,6 +379,170 @@ const customerSignUp = async (req, res) => {
     } catch (error) {
         await pool.query('ROLLBACK');
         console.error('Customer signup error:', error);
+        return res.status(500).json({ success: false, message: 'Database error: ' + error.message });
+    }
+};
+
+// ============================================
+// SERVICE PROVIDER SIGN UP - UPDATED VALIDATIONS
+// ============================================
+const providerSignUp = async (req, res) => {
+    const {
+        full_name, email, phone, password, district,
+        categories, service_areas, nic_number,
+        police_station, police_report_date
+    } = req.body;
+
+    console.log('📝 Provider Signup:', { full_name, email, phone, categories });
+
+    // ===== VALIDATIONS =====
+    // 1. Full Name - Letters and spaces only (2-50 chars)
+    const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+    if (!full_name || !nameRegex.test(full_name.trim())) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Name can only contain letters and spaces (min 2 characters)' 
+        });
+    }
+
+    // 2. Email - Valid email structure (lowercase only)
+    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
+    if (!email || !emailRegex.test(email.toLowerCase())) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Please enter a valid email address (e.g., john@example.com)' 
+        });
+    }
+
+    // 3. Phone - Exactly 10 digits
+    const phoneRegex = /^\d{10}$/;
+    if (!phone || !phoneRegex.test(phone)) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Phone number must be exactly 10 digits' 
+        });
+    }
+
+    // 4. Password - Min 6 chars, no spaces
+    if (!password || password.length < 6 || /\s/.test(password)) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Password must be at least 6 characters (no spaces allowed)' 
+        });
+    }
+
+    // 5. NIC - 9 digits + V (uppercase) OR 12 digits
+    const nicRegex = /^[0-9]{9}V$|^[0-9]{12}$/;
+    if (!nic_number || !nicRegex.test(nic_number.toUpperCase())) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'NIC must be 9 digits + V (e.g., 123456789V) or 12 digits' 
+        });
+    }
+
+    // 6. Police Station - Letters, spaces, and hyphens only (2-50 chars)
+    const stationRegex = /^[a-zA-Z\s\-]{2,50}$/;
+    if (!police_station || !stationRegex.test(police_station.trim())) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Police station can only contain letters, spaces, and hyphens' 
+        });
+    }
+
+    // 7. Categories - Max 2
+    if (!categories || categories.length === 0 || categories.length > 2) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Please select 1-2 categories only' 
+        });
+    }
+
+    // 8. Police Report Date - Required
+    if (!police_report_date) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Police report date is required' 
+        });
+    }
+
+    // 9. District - Required
+    if (!district) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Please select your district' 
+        });
+    }
+
+    // 10. Service Areas - Required
+    if (!service_areas || service_areas.length === 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Please select at least one service area' 
+        });
+    }
+
+    try {
+        const emailCheck = await pool.query('SELECT userid FROM users WHERE email = $1', [email.toLowerCase()]);
+        if (emailCheck.rows.length > 0) {
+            return res.status(400).json({ success: false, message: 'Email already registered' });
+        }
+
+        const nameParts = full_name.trim().split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        const username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const uniqueToken = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        await pool.query('BEGIN');
+
+        const userResult = await pool.query(
+            `INSERT INTO users (username, email, password, role, status, unique_token, phone, first_name, last_name, district, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+             RETURNING userid, username, email, role`,
+            [username, email.toLowerCase(), hashedPassword, 'provider', 'PENDING_REVIEW', uniqueToken, phone, firstName, lastName, district]
+        );
+
+        const newUser = userResult.rows[0];
+
+        await pool.query(
+            `INSERT INTO worker_profiles (user_id, nic_number, police_station, police_report_date, verification_status, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, 'PENDING_REVIEW', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+            [newUser.userid, nic_number.toUpperCase(), police_station, police_report_date]
+        );
+
+        const categoryStr = (categories && categories.length > 0) ? categories.join(', ') : 'General';
+        await pool.query(
+            `INSERT INTO service_providers (userid, category, is_verified, is_online, rejected_requests, completed_jobs, cancelled_jobs)
+             VALUES ($1, $2, false, false, 0, 0, 0)`,
+            [newUser.userid, categoryStr]
+        );
+
+        await pool.query('COMMIT');
+
+        const token = jwt.sign(
+            { userId: newUser.userid, email: newUser.email, role: newUser.role },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        return res.status(201).json({
+            success: true,
+            message: 'Provider registration successful! Pending verification.',
+            token: token,
+            user: {
+                id: newUser.userid,
+                username: newUser.username,
+                email: newUser.email,
+                role: newUser.role,
+                full_name: full_name
+            }
+        });
+
+    } catch (error) {
+        await pool.query('ROLLBACK');
+        console.error('Provider signup error:', error);
         return res.status(500).json({ success: false, message: 'Database error: ' + error.message });
     }
 };

@@ -50,7 +50,7 @@ function VerifyAdminDashboard() {
               </div>
             </div>
 
-            <Link to="/login" className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors ml-2 border border-rose-100">
+            <Link to="/" className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 rounded-lg transition-colors ml-2 border border-rose-100">
               <span className="material-symbols-outlined text-base">logout</span>
               <span>Log Out</span>
             </Link>
