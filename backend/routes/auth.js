@@ -14,6 +14,7 @@ const {
 } = require('../controllers/AuthController');
 
 // Customer Sign Up
+
 router.post('/signup', customerSignUp);
 
 // Provider Sign Up
