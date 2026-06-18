@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import GoogleLogin from '../../components/GoogleLogin';
 import { useAuth } from '../../components/AuthContext';
+import CenteredToast from '../../components/CenteredToast';
 
 function LoginPage() {
   const { login } = useAuth();
@@ -73,24 +74,7 @@ function LoginPage() {
     <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 font-sans relative overflow-x-hidden">
       
       {/* ===== TOAST NOTIFICATIONS ===== */}
-      {toast.show && (
-        <div className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-2xl shadow-2xl border transition-all duration-300 animate-in slide-in-from-top-5 flex items-center gap-3 ${
-          toast.type === 'success' 
-            ? 'bg-white/95 backdrop-blur-sm border-green-200 text-green-700' 
-            : 'bg-white/95 backdrop-blur-sm border-red-200 text-red-700'
-        }`}>
-          <span className={`material-symbols-outlined ${toast.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
-            {toast.type === 'success' ? 'check_circle' : 'error'}
-          </span>
-          <span className="font-medium">{toast.message}</span>
-          <button 
-            onClick={() => setToast({ show: false, message: '', type: 'success' })} 
-            className={`ml-2 ${toast.type === 'success' ? 'text-green-400 hover:text-green-600' : 'text-red-400 hover:text-red-600'}`}
-          >
-            <span className="material-symbols-outlined text-sm">close</span>
-          </button>
-        </div>
-      )}
+      <CenteredToast show={toast.show} type={toast.type} message={toast.message} onClose={() => setToast({ show: false, message: '', type: 'success' })} />
 
       <div className="flex flex-1 w-full min-h-screen">
         

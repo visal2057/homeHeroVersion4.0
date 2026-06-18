@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../components/AuthContext';
+import CenteredToast from '../../components/CenteredToast';
 
 const SignUp = () => {
   const { login } = useAuth();
@@ -135,25 +136,8 @@ const SignUp = () => {
     <div className="min-h-screen w-full flex flex-col bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 font-sans relative overflow-x-hidden">
       
       {/* Toast Notifications */}
-      {error && (
-        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-2xl shadow-2xl border border-red-200 bg-white/95 backdrop-blur-sm text-red-700 flex items-center gap-3 animate-in slide-in-from-top-5 duration-300 max-w-md w-full">
-          <span className="material-symbols-outlined text-red-500 flex-shrink-0">error</span>
-          <span className="font-medium flex-1">{error}</span>
-          <button onClick={() => setError('')} className="text-red-400 hover:text-red-600 flex-shrink-0">
-            <span className="material-symbols-outlined text-sm">close</span>
-          </button>
-        </div>
-      )}
-      
-      {success && (
-        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-2xl shadow-2xl border border-green-200 bg-white/95 backdrop-blur-sm text-green-700 flex items-center gap-3 animate-in slide-in-from-top-5 duration-300 max-w-md w-full">
-          <span className="material-symbols-outlined text-green-500 flex-shrink-0">check_circle</span>
-          <span className="font-medium flex-1">{success}</span>
-          <button onClick={() => setSuccess('')} className="text-green-400 hover:text-green-600 flex-shrink-0">
-            <span className="material-symbols-outlined text-sm">close</span>
-          </button>
-        </div>
-      )}
+      <CenteredToast show={Boolean(error)} type="error" message={error} onClose={() => setError('')} />
+      <CenteredToast show={Boolean(success)} type="success" message={success} onClose={() => setSuccess('')} />
 
       <div className="flex flex-1 w-full min-h-screen">
         
