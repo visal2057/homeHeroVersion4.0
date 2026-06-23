@@ -14,7 +14,6 @@ const ContactUs = () => {
             <span className="text-sm font-medium text-on-surface-variant hidden sm:block">Contact Us</span>
           </div>
           <nav className="hidden md:flex items-center gap-8">
-            <Link to="/dashboard/account" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Home</Link>
             <Link to="/about" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">About us</Link>
             <Link to="/careers" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Careers</Link>
             <Link to="/contact" className="text-sm font-medium text-primary border-b-2 border-primary pb-1">Contact us</Link>

@@ -31,7 +31,6 @@ function LandingPage() {
             <span className="text-sm font-medium text-on-surface-variant hidden sm:block">Home Services</span>
           </div>
           <nav className="hidden md:flex items-center gap-8">
-            <Link to="/" className="text-sm font-medium text-primary border-b-2 border-primary pb-1 transition-colors">Home</Link>
             <Link to="/about" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors relative group">
               About us
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>

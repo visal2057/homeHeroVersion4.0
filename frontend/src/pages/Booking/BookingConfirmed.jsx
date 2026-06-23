@@ -10,9 +10,9 @@ const BookingConfirmed = () => {
       {/* ===== HEADER ===== */}
       <header className="bg-white/90 backdrop-blur-md border-b border-slate-100 fixed top-0 w-full z-50 shadow-[0_4px_20px_-4px_rgba(6,78,59,0.08)]">
         <div className="flex justify-between items-center h-16 px-6 md:px-12 max-w-7xl mx-auto">
-          <Link to="/" className="text-2xl font-black tracking-tight text-emerald-600">HomeHero</Link>
+          <Link to="/dashboard/account" className="text-2xl font-black tracking-tight text-emerald-600">HomeHero</Link>
           <div className="flex items-center gap-6">
-            <Link to="/" className="text-slate-500 hover:text-emerald-700 transition-all duration-200 active:scale-95">
+            <Link to="/dashboard/account" className="text-slate-500 hover:text-emerald-700 transition-all duration-200 active:scale-95">
               <span className="material-symbols-outlined">home</span>
             </Link>
             <Link to="/notifications" className="text-slate-500 hover:text-emerald-700 transition-all duration-200 active:scale-95 relative">
@@ -152,7 +152,7 @@ const BookingConfirmed = () => {
 
           {/* ===== BACK TO HOME ===== */}
           <div className="mt-8 text-center">
-            <Link to="/" className="text-sm text-gray-500 hover:text-emerald-600 transition-colors inline-flex items-center gap-1">
+            <Link to="/dashboard/account" className="text-sm text-gray-500 hover:text-emerald-600 transition-colors inline-flex items-center gap-1">
               <span className="material-symbols-outlined text-sm">arrow_back</span>
               Back to Home
             </Link>

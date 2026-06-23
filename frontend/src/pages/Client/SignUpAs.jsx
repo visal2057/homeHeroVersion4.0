@@ -23,12 +23,7 @@ const SignUpAs = () => {
             <div className="h-6 w-px bg-outline-variant mx-2 hidden sm:block"></div>
             <span className="text-sm font-medium text-on-surface-variant hidden sm:block">Sign up as</span>
           </div>
-          <nav className="hidden md:flex items-center gap-8">
-            <Link to="/" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Home</Link>
-            <Link to="/about" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">About us</Link>
-            <Link to="/careers" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Careers</Link>
-            <Link to="/contact" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Contact us</Link>
-          </nav>
+          
        
         </div>
       </header>

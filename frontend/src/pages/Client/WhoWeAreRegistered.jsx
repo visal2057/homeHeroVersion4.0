@@ -27,7 +27,6 @@ const WhoWeAreRegistered = () => {
             <span className="text-sm font-medium text-on-surface-variant hidden sm:block">About Us</span>
           </div>
           <nav className="hidden md:flex items-center gap-8">
-            <Link to="/dashboard" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Home</Link>
             <Link to="/about" className="text-sm font-medium text-primary border-b-2 border-primary pb-1">About us</Link>
             <Link to="/careers" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Careers</Link>
             <Link to="/contact" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Contact us</Link>
