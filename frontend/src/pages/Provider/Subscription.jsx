@@ -21,46 +21,91 @@ const formatExpiryDate = (value) => {
   return limited;
 };
 
+// ===== VALIDATION FUNCTIONS =====
+const isValidCardNumber = (cardNumber) => {
+  const cleaned = cardNumber.replace(/\s/g, '');
+  return cleaned.length === 16 && /^\d{16}$/.test(cleaned);
+};
+
+const isValidExpiry = (expiryDate) => {
+  const cleaned = expiryDate.replace('/', '');
+  if (cleaned.length !== 4) return false;
+  if (!/^\d{4}$/.test(cleaned)) return false;
+  
+  const month = parseInt(cleaned.slice(0, 2));
+  const year = parseInt(cleaned.slice(2));
+  
+  if (month < 1 || month > 12) return false;
+  
+  const now = new Date();
+  const currentYear = now.getFullYear() % 100;
+  const currentMonth = now.getMonth() + 1;
+  
+  if (year < currentYear || (year === currentYear && month < currentMonth)) {
+    return false;
+  }
+  
+  return true;
+};
+
+const isValidCVC = (cvc) => {
+  return /^\d{3}$/.test(cvc);
+};
+
+// ===== CARDHOLDER NAME VALIDATION - Only letters and spaces =====
+const isValidCardholderName = (name) => {
+  // Only allow letters, spaces, and hyphens
+  return /^[a-zA-Z\s\-]{2,50}$/.test(name.trim());
+};
+
 const Membership = () => {
-  const { user, token, logout } = useAuth(); // Destructured logout to serve the shared header utility lifecycle metrics
-
-  // Layout presentation states from SPDashboard
+  const { user, token, logout } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  // Modal visibility state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [loadingPage, setLoadingPage] = useState(true);
-
-  // Toast notification state
   const [toast, setToast] = useState({
     show: false,
     isVisible: false,
-    type: 'success', // 'success' or 'error'
+    type: 'success',
     message: ''
   });
-
-  // Dynamic state placeholders replacing old static mock arrays
   const [membership, setMembership] = useState(null);
   const [paymentHistory, setPaymentHistory] = useState([]);
-  
-  // Form submission state tracking
   const [formData, setFormData] = useState({
     cardholderName: '',
     cardNumber: '',
     expiryDate: '',
     cvc: ''
   });
+  const [formErrors, setFormErrors] = useState({
+    cardholderName: '',
+    cardNumber: '',
+    expiryDate: '',
+    cvc: ''
+  });
+  const [formTouched, setFormTouched] = useState({
+    cardholderName: false,
+    cardNumber: false,
+    expiryDate: false,
+    cvc: false
+  });
 
-  // Base configurations targeting your Express backend setup
   const API_URL = 'http://localhost:5000/api/membership'; 
   const currentUserId = user?.id || user?.userid;
-  
-  // Header and sidebar data mapping parameters matching SPDashboard definitions exactly
   const providerName = user?.name || user?.username || "Suresh Fonseka";
   const providerAvatar = user?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80";
 
-  // Dynamic server dataset loading logic execution block
+  // ===== VALIDATION HELPER =====
+  const isFormValid = () => {
+    return (
+      isValidCardholderName(formData.cardholderName) &&
+      isValidCardNumber(formData.cardNumber) &&
+      isValidExpiry(formData.expiryDate) &&
+      isValidCVC(formData.cvc)
+    );
+  };
+
   const fetchMembershipData = async () => {
     if (!currentUserId) {
       setLoadingPage(false);
@@ -87,26 +132,45 @@ const Membership = () => {
   useEffect(() => {
     fetchMembershipData();
     return () => {
-      document.body.style.overflow = 'auto'; // Cleanup guard safely
+      document.body.style.overflow = 'auto';
     };
   }, [currentUserId]);
 
-  // Helper function to control scroll lock on modal toggle
-  const openModal = () => {    // Check if a plan is already active
+  const openModal = () => {
     if (membership?.status === 'ACTIVE') {
       showToast('You already have an active subscription. Wait until it expires or contact support to upgrade.', 'error');
       return;
-    }    setIsModalOpen(true);
+    }
+    setIsModalOpen(true);
     document.body.style.overflow = 'hidden';
+    setFormErrors({ cardholderName: '', cardNumber: '', expiryDate: '', cvc: '' });
+    setFormTouched({ cardholderName: false, cardNumber: false, expiryDate: false, cvc: false });
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setIsProcessing(false);
     document.body.style.overflow = 'auto';
+    setFormData({
+      cardholderName: '',
+      cardNumber: '',
+      expiryDate: '',
+      cvc: ''
+    });
+    setFormErrors({
+      cardholderName: '',
+      cardNumber: '',
+      expiryDate: '',
+      cvc: ''
+    });
+    setFormTouched({
+      cardholderName: false,
+      cardNumber: false,
+      expiryDate: false,
+      cvc: false
+    });
   };
 
-  // Helper function to show toast notifications
   const showToast = (message, type = 'success') => {
     setToast({
       show: true,
@@ -115,7 +179,6 @@ const Membership = () => {
       message
     });
 
-    // Auto-hide after 4 seconds
     const timeoutId = setTimeout(() => {
       setToast(prev => ({ ...prev, isVisible: false }));
       setTimeout(() => {
@@ -126,7 +189,6 @@ const Membership = () => {
     return () => clearTimeout(timeoutId);
   };
 
-  // Keyboard shortcut listener to clear overlay on Escape press
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') closeModal();
@@ -137,22 +199,31 @@ const Membership = () => {
     };
   }, []);
 
-  // Form input field generic string processor
+  // ===== CARDHOLDER NAME CHANGE - Only letters and spaces =====
+  const handleCardholderNameChange = (e) => {
+    const value = e.target.value;
+    // Only allow letters, spaces, and hyphens
+    const filtered = value.replace(/[^a-zA-Z\s\-]/g, '');
+    setFormData(prev => ({ ...prev, cardholderName: filtered }));
+    setFormErrors(prev => ({ ...prev, cardholderName: '' }));
+    setFormTouched(prev => ({ ...prev, cardholderName: true }));
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setFormErrors(prev => ({ ...prev, [name]: '' }));
+    setFormTouched(prev => ({ ...prev, [name]: true }));
   };
 
-  // Input mutation hooks
   const handleCardNumberChange = (e) => {
     const rawValue = e.target.value;
     const digitsOnly = rawValue.replace(/\s/g, '');
     if (digitsOnly.length > 16) return;
     const formatted = formatCardNumber(digitsOnly);
-    setFormData({
-      ...formData,
-      cardNumber: formatted
-    });
+    setFormData({ ...formData, cardNumber: formatted });
+    setFormErrors(prev => ({ ...prev, cardNumber: '' }));
+    setFormTouched(prev => ({ ...prev, cardNumber: true }));
   };
 
   const handleExpiryChange = (e) => {
@@ -160,10 +231,17 @@ const Membership = () => {
     const digitsOnly = rawValue.replace(/\//g, '');
     if (digitsOnly.length > 4) return;
     const formatted = formatExpiryDate(digitsOnly);
-    setFormData({
-      ...formData,
-      expiryDate: formatted
-    });
+    setFormData({ ...formData, expiryDate: formatted });
+    setFormErrors(prev => ({ ...prev, expiryDate: '' }));
+    setFormTouched(prev => ({ ...prev, expiryDate: true }));
+  };
+
+  const handleCVCChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '');
+    if (value.length > 3) return;
+    setFormData({ ...formData, cvc: value });
+    setFormErrors(prev => ({ ...prev, cvc: '' }));
+    setFormTouched(prev => ({ ...prev, cvc: true }));
   };
 
   const handleCardNumberPaste = (e) => {
@@ -172,10 +250,9 @@ const Membership = () => {
     const digitsOnly = pastedData.replace(/\D/g, '');
     const limited = digitsOnly.slice(0, 16);
     const formatted = formatCardNumber(limited);
-    setFormData({
-      ...formData,
-      cardNumber: formatted
-    });
+    setFormData({ ...formData, cardNumber: formatted });
+    setFormErrors(prev => ({ ...prev, cardNumber: '' }));
+    setFormTouched(prev => ({ ...prev, cardNumber: true }));
   };
 
   const handleExpiryPaste = (e) => {
@@ -184,10 +261,9 @@ const Membership = () => {
     const digitsOnly = pastedData.replace(/\D/g, '');
     const limited = digitsOnly.slice(0, 4);
     const formatted = formatExpiryDate(limited);
-    setFormData({
-      ...formData,
-      expiryDate: formatted
-    });
+    setFormData({ ...formData, expiryDate: formatted });
+    setFormErrors(prev => ({ ...prev, expiryDate: '' }));
+    setFormTouched(prev => ({ ...prev, expiryDate: true }));
   };
 
   const handleCardNumberKeyDown = (e) => {
@@ -199,10 +275,7 @@ const Membership = () => {
       if (charsBeforeCursor.endsWith(' ')) {
         e.preventDefault();
         const newValue = value.slice(0, cursorPosition - 1) + value.slice(cursorPosition);
-        setFormData({
-          ...formData,
-          cardNumber: newValue
-        });
+        setFormData({ ...formData, cardNumber: newValue });
         setTimeout(() => {
           e.target.selectionStart = cursorPosition - 1;
           e.target.selectionEnd = cursorPosition - 1;
@@ -211,18 +284,96 @@ const Membership = () => {
     }
   };
 
-  // Submission network execution post handler logic
+  // ===== VALIDATE ON BLUR =====
+  const validateField = (field, value) => {
+    let error = '';
+    switch (field) {
+      case 'cardholderName':
+        if (!value.trim()) {
+          error = 'Cardholder name is required';
+        } else if (!/^[a-zA-Z\s\-]{2,50}$/.test(value.trim())) {
+          error = 'Use letters and spaces only (min 2 characters)';
+        }
+        break;
+      case 'cardNumber':
+        if (!isValidCardNumber(value)) {
+          const cleaned = value.replace(/\s/g, '');
+          if (!cleaned) {
+            error = 'Card number is required';
+          } else if (cleaned.length < 16) {
+            error = `Please enter ${16 - cleaned.length} more digit(s)`;
+          } else {
+            error = 'Please enter a valid 16-digit card number';
+          }
+        }
+        break;
+      case 'expiryDate':
+        if (!isValidExpiry(value)) {
+          const cleaned = value.replace('/', '');
+          if (!cleaned) {
+            error = 'Expiry date is required';
+          } else if (cleaned.length < 4) {
+            error = `Please enter ${4 - cleaned.length} more digit(s)`;
+          } else {
+            error = 'Please enter a valid expiry date (MM/YY)';
+          }
+        }
+        break;
+      case 'cvc':
+        if (!isValidCVC(value)) {
+          if (!value) {
+            error = 'CVC is required';
+          } else if (value.length < 3) {
+            error = `Please enter ${3 - value.length} more digit(s)`;
+          } else {
+            error = 'Please enter a valid 3-digit CVC';
+          }
+        }
+        break;
+      default:
+        break;
+    }
+    setFormErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  const handleBlur = (field) => {
+    setFormTouched(prev => ({ ...prev, [field]: true }));
+    validateField(field, formData[field]);
+  };
+
   const handlePaymentSubmit = async (e) => {
     e.preventDefault();
+    
+    // Mark all fields as touched
+    setFormTouched({
+      cardholderName: true,
+      cardNumber: true,
+      expiryDate: true,
+      cvc: true
+    });
+    
+    // Validate all fields
+    const fields = ['cardholderName', 'cardNumber', 'expiryDate', 'cvc'];
+    let hasError = false;
+    fields.forEach(field => {
+      validateField(field, formData[field]);
+      if (formErrors[field]) hasError = true;
+    });
+    
+    // Check again for errors after validation
+    const hasFormErrors = Object.values(formErrors).some(err => err !== '');
+    if (hasFormErrors || !isFormValid()) {
+      showToast('Please fill all fields correctly before submitting.', 'error');
+      return;
+    }
+    
     setIsProcessing(true);
 
-    // Formulate card string snapshot safely
     const cleanCard = formData.cardNumber.replace(/\s/g, '');
     const lastFourDigits = cleanCard.slice(-4) || '4242';
     const paymentMethodSnapshot = `Visa •••• ${lastFourDigits}`;
 
     try {
-      console.log('renew payment payload', { paymentMethodSnapshot, token });
       await axios.post(`${API_URL}/renew`, {
         paymentMethod: paymentMethodSnapshot,
         payment_method: paymentMethodSnapshot
@@ -233,27 +384,19 @@ const Membership = () => {
         }
       });
       
-      // Show success notification
       showToast('✓ Payment successful! Your subscription has been renewed.', 'success');
       
       closeModal();
-      setFormData({ cardholderName: '', cardNumber: '', expiryDate: '', cvc: '' });
       setLoadingPage(true);
-      
-      // Reload and re-populate the tables dynamically 
       await fetchMembershipData();
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred';
       console.error("Payment processing transaction failure:", err.response?.data || err.message);
-      
-      // Show error notification
       showToast(`✕ Payment failed: ${errorMessage}`, 'error');
-      
       setIsProcessing(false);
     }
   };
 
-  // Helper function to format system timestrings beautifully
   const formatDate = (isoString) => {
     if (!isoString) return 'N/A';
     const date = new Date(isoString);
@@ -271,10 +414,9 @@ const Membership = () => {
   return (
     <div className="bg-background text-on-surface">
       
-      {/* Toast Notification */}
       <GlobalToast toast={toast} />
 
-      {/* ── SIDEBAR (CLONED EXACTLY FROM SPBOARD) ── */}
+      {/* SIDEBAR */}
       <aside className="fixed left-0 top-0 h-full hidden lg:flex flex-col w-64 border-r border-slate-200 bg-white z-50">
         <div className="px-6 py-8">
           <span className="text-xl font-black text-emerald-600">HomeHero</span>
@@ -304,10 +446,10 @@ const Membership = () => {
         </nav>
       </aside>
 
-      {/* ── MAIN CONTENT WORKSPACE AREA ── */}
+      {/* MAIN CONTENT */}
       <main className="lg:ml-64 min-h-screen">
         
-        {/* ── HEADER (CLONED EXACTLY FROM SPBOARD) ── */}
+        {/* HEADER */}
         <header className="sticky top-0 z-40 w-full flex justify-between items-center px-6 py-3 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-black text-slate-800">Subscription</h1>
@@ -325,7 +467,6 @@ const Membership = () => {
             </button>
             <div className="h-8 w-px bg-slate-200 mx-2"></div>
             
-            {/* Account Bubble Dropdown Component */}
             <div className="relative">
               <button 
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -335,11 +476,9 @@ const Membership = () => {
                 <img alt="User avatar" className="w-8 h-8 rounded-full border border-slate-200 object-cover" src={providerAvatar} />
               </button>
 
-              {/* Dropdown Options Menu */}
               {isDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)}></div>
-                  
                   <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-20 transition-all">
                     <a 
                       href="#profile" 
@@ -367,19 +506,16 @@ const Membership = () => {
           </div>
         </header>
 
-        {/* ── MEMBERSHIP ORIGINAL VIEWPORT BODY CANVAS ── */}
+        {/* MEMBERSHIP CONTENT */}
         <div className="p-6 space-y-6 max-w-5xl mx-auto">
           
-          {/* Page Header Layout */}
           <div className="flex flex-col gap-1">
             <h1 className="text-4xl font-bold text-on-surface tracking-tight">Manage Subscription</h1>
             <p className="text-on-surface-variant text-sm">Review your current plan and view payment history.</p>
           </div>
 
-          {/* Bento Grid Structures */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Active Plan Specifications Card */}
             <div className="lg:col-span-2 bg-white rounded-xl border border-outline-variant p-8 flex flex-col justify-between relative overflow-hidden shadow-sm hover:shadow-md transition-shadow">
               <div className="absolute top-0 right-0 p-8 text-primary/10 select-none pointer-events-none">
                 <span className="material-symbols-outlined text-[120px] leading-none">verified_user</span>
@@ -429,7 +565,6 @@ const Membership = () => {
               </div>
             </div>
 
-            {/* Instant Billing Statement Snapshot Card */}
             <div className="bg-primary text-white rounded-xl p-8 flex flex-col justify-center space-y-6">
               <h3 className="text-xl font-bold opacity-90">Subscription Parameter</h3>
               <div className="space-y-4">
@@ -452,7 +587,7 @@ const Membership = () => {
             </div>
           </div>
 
-          {/* ── PAYMENT HISTORY METRIC SECTION ── */}
+          {/* PAYMENT HISTORY */}
           <div className="bg-white rounded-xl border border-outline-variant overflow-hidden shadow-sm">
             <div className="px-8 py-4 border-b border-outline-variant flex justify-between items-center bg-surface-container-low/50">
               <h3 className="text-lg font-bold text-on-surface">Payment History</h3>
@@ -489,7 +624,7 @@ const Membership = () => {
                         <td className="px-8 py-4 font-bold text-on-surface">LKR {parseFloat(invoice.amount).toFixed(2)}</td>
                         <td className="px-8 py-4">
                           <span className="flex items-center gap-1 text-primary font-semibold text-xs">
-                            <span className="material-symbols-outlined text-[18px] fill-icon">check_circle</span>
+                            <span className="material-symbols-outlined text-[18px]">check_circle</span>
                             Settled
                           </span>
                         </td>
@@ -508,7 +643,6 @@ const Membership = () => {
 
         </div>
 
-        {/* ── CONTAINER FOOTER CANVAS ── */}
         <footer className="bg-surface-container-low w-full px-8 py-6 border-t border-outline-variant/20 flex flex-col md:flex-row justify-between items-center gap-4 mt-auto">
           <div className="flex flex-col gap-1 items-center md:items-start">
             <span className="text-xl font-bold text-primary">HomeHero</span>
@@ -525,7 +659,7 @@ const Membership = () => {
 
       </main>
 
-      {/* ── TRANSACTION OVERLAY PAYMENT MODAL ── */}
+      {/* PAYMENT MODAL */}
       {isModalOpen && (
         <div 
           id="paymentModal"
@@ -534,10 +668,9 @@ const Membership = () => {
         >
           <div className="bg-white w-[512px] min-w-[320px] md:min-w-[512px] max-w-lg rounded-2xl shadow-2xl overflow-hidden relative animate-in fade-in zoom-in duration-150">
             
-            {/* Close trigger button */}
             <button 
               onClick={closeModal}
-              className="absolute top-4 right-4 text-on-surface-variant hover:text-error transition-colors p-1 cursor-pointer"
+              className="absolute top-4 right-4 text-on-surface-variant hover:text-error transition-colors p-1 cursor-pointer z-10"
             >
               <span className="material-symbols-outlined text-[28px]">close</span>
             </button>
@@ -549,19 +682,27 @@ const Membership = () => {
               </div>
 
               <form className="space-y-4" onSubmit={handlePaymentSubmit}>
+                
+                {/* Cardholder Name */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Cardholder Name</label>
                   <input 
                     name="cardholderName"
                     value={formData.cardholderName}
-                    onChange={handleInputChange}
-                    className="w-full border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-sm transition-all" 
-                    placeholder="John Doe" 
+                    onChange={handleCardholderNameChange}
+                    onBlur={() => handleBlur('cardholderName')}
+                    className={`w-full border ${formErrors.cardholderName && formTouched.cardholderName ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-primary focus:ring-primary'} focus:outline-none rounded-lg p-3 text-sm transition-all`} 
+                    placeholder="" 
                     type="text"
                     required
                   />
+                  {formErrors.cardholderName && formTouched.cardholderName && (
+                    <p className="text-xs text-red-500 mt-1">{formErrors.cardholderName}</p>
+                  )}
+                  <p className="text-xs text-on-surface-variant opacity-60">Letters and spaces only</p>
                 </div>
 
+                {/* Card Number */}
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Card Number</label>
                   <div className="relative">
@@ -571,7 +712,8 @@ const Membership = () => {
                       onChange={handleCardNumberChange}
                       onPaste={handleCardNumberPaste}
                       onKeyDown={handleCardNumberKeyDown}
-                      className="w-full border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 pr-10 text-sm transition-all font-mono tracking-wider" 
+                      onBlur={() => handleBlur('cardNumber')}
+                      className={`w-full border ${formErrors.cardNumber && formTouched.cardNumber ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-primary focus:ring-primary'} focus:outline-none rounded-lg p-3 pr-10 text-sm transition-all font-mono tracking-wider`} 
                       placeholder="0000 0000 0000 0000" 
                       type="text"
                       maxLength="19"
@@ -581,8 +723,13 @@ const Membership = () => {
                       <span className="material-symbols-outlined">credit_card</span>
                     </div>
                   </div>
+                  {formErrors.cardNumber && formTouched.cardNumber && (
+                    <p className="text-xs text-red-500 mt-1">{formErrors.cardNumber}</p>
+                  )}
+                  <p className="text-xs text-on-surface-variant opacity-60">Enter 16-digit card number</p>
                 </div>
 
+                {/* Expiry & CVC */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Expiry Date</label>
@@ -591,28 +738,38 @@ const Membership = () => {
                       value={formData.expiryDate}
                       onChange={handleExpiryChange}
                       onPaste={handleExpiryPaste}
-                      className="w-full border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-sm transition-all font-mono" 
+                      onBlur={() => handleBlur('expiryDate')}
+                      className={`w-full border ${formErrors.expiryDate && formTouched.expiryDate ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-primary focus:ring-primary'} focus:outline-none rounded-lg p-3 text-sm transition-all font-mono`} 
                       placeholder="MM/YY" 
                       type="text"
                       maxLength="5"
                       required
                     />
+                    {formErrors.expiryDate && formTouched.expiryDate && (
+                      <p className="text-xs text-red-500 mt-1">{formErrors.expiryDate}</p>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-xs font-bold text-on-surface uppercase tracking-wider">CVC</label>
                     <input 
                       name="cvc"
                       value={formData.cvc}
-                      onChange={handleInputChange}
-                      className="w-full border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-sm transition-all font-mono" 
+                      onChange={handleCVCChange}
+                      onBlur={() => handleBlur('cvc')}
+                      className={`w-full border ${formErrors.cvc && formTouched.cvc ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-slate-200 focus:border-primary focus:ring-primary'} focus:outline-none rounded-lg p-3 text-sm transition-all font-mono`} 
                       placeholder="•••" 
                       type="password"
-                      maxLength="4"
+                      maxLength="3"
                       required
                     />
+                    {formErrors.cvc && formTouched.cvc && (
+                      <p className="text-xs text-red-500 mt-1">{formErrors.cvc}</p>
+                    )}
+                    <p className="text-xs text-on-surface-variant opacity-60">3-digit security code</p>
                   </div>
                 </div>
 
+                {/* Info Box */}
                 <div className="flex items-center gap-3 bg-surface-container-low p-4 rounded-lg mt-6">
                   <div className="bg-secondary-container p-2 rounded-full text-primary flex items-center justify-center">
                     <span className="material-symbols-outlined text-[20px]">info</span>
@@ -622,9 +779,14 @@ const Membership = () => {
                   </p>
                 </div>
 
+                {/* Submit Button - Disabled until form is valid */}
                 <button 
-                  disabled={isProcessing}
-                  className="w-full bg-primary text-white py-3 rounded-xl font-bold text-lg hover:bg-secondary transition-all shadow-lg shadow-primary/20 mt-6 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" 
+                  disabled={isProcessing || !isFormValid()}
+                  className={`w-full text-white py-3 rounded-xl font-bold text-lg transition-all shadow-lg mt-6 cursor-pointer ${
+                    isProcessing || !isFormValid() 
+                      ? 'bg-slate-400 cursor-not-allowed opacity-50' 
+                      : 'bg-primary hover:bg-secondary shadow-lg shadow-primary/20'
+                  }`}
                   type="submit"
                 >
                   {isProcessing ? 'Processing Transaction...' : 'Complete Payment (LKR 4,999)'}

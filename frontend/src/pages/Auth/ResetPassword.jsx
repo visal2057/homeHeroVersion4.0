@@ -61,13 +61,13 @@ const ResetPassword = () => {
         <h2 className="text-2xl font-bold text-center mb-6">Create New Password</h2>
         
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm whitespace-normal break-words">
             {error}
           </div>
         )}
         
         {success && (
-          <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+          <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-sm whitespace-normal break-words">
             {success}
           </div>
         )}

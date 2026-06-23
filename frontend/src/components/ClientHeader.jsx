@@ -69,20 +69,8 @@ const ClientHeader = ({ pageTitle }) => {
                     onClick={() => setMenuOpen(false)}
                     className="rounded-2xl px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                   >
-                    Home
-                  </Link>
-                  <Link
-                    to="/profile"
-                    onClick={() => setMenuOpen(false)}
-                    className="rounded-2xl px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  >
-                    My Profile
-                  </Link>
-                  <Link
-                    to="/profile"
-                    onClick={() => setMenuOpen(false)}
-                    className="rounded-2xl px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  >
+                    
+                  
                     My Profile
                   </Link>
                   <Link
@@ -97,21 +85,8 @@ const ClientHeader = ({ pageTitle }) => {
                     onClick={() => setMenuOpen(false)}
                     className="rounded-2xl px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
                   >
-                    About Us
-                  </Link>
-                  <Link
-                    to="/careers"
-                    onClick={() => setMenuOpen(false)}
-                    className="rounded-2xl px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  >
-                    Careers
-                  </Link>
-                  <Link
-                    to="/contact"
-                    onClick={() => setMenuOpen(false)}
-                    className="rounded-2xl px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                  >
-                    Contact Us
+                
+               
                   </Link>
                 </div>
                 <div className="border-t border-slate-200 p-3">
@@ -121,7 +96,7 @@ const ClientHeader = ({ pageTitle }) => {
                       setMenuOpen(false);
                       logout();
                     }}
-                    className="w-full rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                    className="w-full rounded-2xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
                   >
                     Log Out
                   </button>

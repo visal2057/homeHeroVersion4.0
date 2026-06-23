@@ -2,149 +2,225 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const Careers = () => {
-  return (
-    <div className="antialiased bg-surface text-on-surface min-h-screen flex flex-col">
-      {/* TopNavBar */}
-      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-outline-variant shadow-md">
-        <div className="flex justify-between items-center max-w-7xl mx-auto px-6 h-20">
-          <Link to="/" className="text-2xl font-black text-primary">HomeHero</Link>
-          <div className="hidden md:flex items-center space-x-8">
-            <Link to="/services" className="text-on-surface-variant font-medium pb-1 hover:text-primary">Services</Link>
-            <Link to="/about" className="text-on-surface-variant font-medium pb-1 hover:text-primary">About us</Link>
-            <Link to="/careers" className="text-primary border-b-2 border-primary font-semibold pb-1">Careers</Link>
-            <Link to="/contact" className="text-on-surface-variant font-medium pb-1 hover:text-primary">Contact us</Link>
-          </div>
-          <div className="flex items-center gap-6 text-on-surface-variant">
-            <Link to="/" className="hover:text-primary transition-colors">
-              <span className="material-symbols-outlined text-[28px]">home</span>
-            </Link>
-            <Link to="/notifications" className="relative hover:text-primary transition-colors">
-              <span className="material-symbols-outlined text-[28px]">notifications</span>
-              <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 border-2 border-white"></span>
-            </Link>
-            <Link to="/profile" className="hover:text-primary transition-colors">
-              <span className="material-symbols-outlined text-[32px]">account_circle</span>
-            </Link>
-          </div>
-        </div>
-      </nav>
+  // Why join HomeHero - benefits data
+  const benefits = [
+    {
+      icon: "verified",
+      title: "Trust & Transparency",
+      description: "We believe in building trust through honest communication and transparent processes."
+    },
+    {
+      icon: "handshake",
+      title: "Supportive Environment",
+      description: "Great work happens when talented people are given the trust, tools, and freedom to excel."
+    },
+    {
+      icon: "trending_up",
+      title: "Growth Opportunities",
+      description: "Continuous learning and career development opportunities for all team members."
+    },
+    {
+      icon: "diversity_3",
+      title: "Inclusive Culture",
+      description: "We celebrate diversity and create an environment where everyone belongs and contributes."
+    },
+    {
+      icon: "verified",
+      title: "Professional Development",
+      description: "Access to training, workshops, and resources to enhance your skills."
+    },
+    {
+      icon: "group",
+      title: "Community Impact",
+      description: "Be part of a mission that's making a real difference in people's lives."
+    }
+  ];
 
-      <main className="flex-grow">
-        {/* Hero Section */}
-        <section className="relative pt-40 pb-20 overflow-hidden bg-surface">
-          <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="z-10 w-full">
-              <span className="inline-block py-1 px-3 rounded-full bg-secondary-container text-on-secondary-container text-xs mb-6 uppercase tracking-wider font-semibold">
-                Join our mission
-              </span>
-              <h1 className="text-4xl md:text-5xl font-bold text-on-surface mb-6 leading-tight">
-                Building the Future of Home Services
-              </h1>
-              <p className="text-lg text-on-surface-variant mb-10 max-w-lg">
-                We're on a journey to redefine how the world takes care of their homes. Join our team of passionate service providers.
+  // Values data
+  const values = [
+    {
+      icon: "rocket_launch",
+      title: "Innovation First",
+      description: "We embrace new ideas and technologies to better serve our customers."
+    },
+    {
+      icon: "security",
+      title: "Safety Always",
+      description: "We prioritize safety for our team members and customers above everything else."
+    },
+    {
+      icon: "favorite",
+      title: "Customer Obsessed",
+      description: "We put our customers at the heart of everything we do."
+    },
+    {
+      icon: "emoji_events",
+      title: "Excellence Driven",
+      description: "We strive for excellence in every service we provide."
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-background text-on-background flex flex-col">
+      
+     <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-outline-variant shadow-sm h-16">
+             <div className="flex justify-between items-center px-4 md:px-8 h-full max-w-7xl mx-auto">
+               <div className="flex items-center gap-2">
+                 <Link to="/" className="text-xl font-black tracking-tighter text-primary">HomeHero</Link>
+                 <div className="h-6 w-px bg-outline-variant mx-2 hidden sm:block"></div>
+                 <span className="text-sm font-medium text-on-surface-variant hidden sm:block">About Us</span>
+               </div>
+               <nav className="hidden md:flex items-center gap-8">
+                 <Link to="/about" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">About us</Link>
+                 <Link to="/careers" className="text-sm font-medium text-primary border-b-2 border-primary pb-1">Careers</Link>
+
+                 
+                 <Link to="/contact" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">Contact us</Link>
+
+               </nav>
+         
+             </div>
+           </header>
+
+      {/* ===== MAIN CONTENT ===== */}
+      <main className="flex-grow pt-16">
+        
+        {/* ===== HERO SECTION ===== */}
+        <section 
+          className="py-16 md:py-20 px-6 text-center text-white min-h-[400px] flex items-center justify-center relative bg-cover bg-center"
+          style={{ backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80')` }}
+        >
+          <div className="max-w-4xl mx-auto relative z-10">
+            <div className="inline-block bg-primary/20 backdrop-blur-sm px-6 py-2 rounded-full mb-6 border border-primary/30">
+              <span className="text-sm font-bold uppercase tracking-wider text-emerald-300">Join Our Mission</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black mb-4 drop-shadow-lg">
+              Building the Future of <br className="hidden sm:inline" />
+              <span className="text-emerald-300">Home Services</span>
+            </h1>
+            <p className="text-base md:text-lg max-w-2xl mx-auto drop-shadow-md opacity-95 mb-8">
+              We're on a journey to redefine how the world takes care of their homes. 
+              Join our team of passionate service providers.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link 
+                to="/auth/worker-register"
+                className="bg-primary text-on-primary px-8 py-3 rounded-full font-semibold hover:bg-primary-container hover:text-on-primary-container transition-all shadow-lg shadow-primary/30"
+              >
+                Join as a Service Provider
+              </Link>
+              <Link 
+                to="/contact"
+                className="bg-white/20 backdrop-blur-sm text-white px-8 py-3 rounded-full font-semibold hover:bg-white/30 transition-all border border-white/30"
+              >
+                Contact us
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        <div className="max-w-7xl mx-auto px-6 w-full">
+          
+          {/* ===== WHY JOIN US SECTION ===== */}
+          <section className="py-16">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-on-surface mb-4">Why join HomeHero?</h2>
+              <p className="text-on-surface-variant max-w-2xl mx-auto">
+                We believe that great work happens when talented people are given the trust, tools, 
+                and freedom to excel in a supportive environment.
               </p>
-              <div className="flex flex-wrap gap-4">
-                <Link to="/auth/worker-register" className="bg-primary text-on-primary px-8 py-4 rounded-xl font-semibold shadow-lg hover:bg-primary-container transition-all">
-                  Join as a Service Provider
-                </Link>
-                <Link to="/contact" className="bg-surface-container-low text-primary px-8 py-4 rounded-xl font-semibold border border-outline-variant hover:bg-outline-variant/50 transition-all">
-                  Contact us
-                </Link>
-              </div>
             </div>
             
-            <div className="relative w-full flex justify-center">
-              {/* Opacity safe inline shape background */}
-              <div 
-                className="absolute -top-12 -right-12 w-64 h-64 rounded-full blur-3xl opacity-30" 
-                style={{ backgroundColor: 'var(--color-primary-container)' }}
-              ></div>
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl w-full max-w-lg border border-outline-variant">
-                <img 
-                  alt="Professional HomeHero service technician" 
-                  className="w-full h-[450px] object-cover" 
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIn4I2guqVCIMNjBJR-A79L5fHMyJ5JtkuI55z1ZHg_lesIgGV9VeoyMJ385dS6xSpicAeG5pdoUn7eXenka_WpdmNCV0PSZ_87PkfGZkKYLilt1JH3uDMlwR_eYBNbEW1_U5rp6TFNtmnQMNkZ7pyOqUNU6W_4E_Sm3-g3HVl_M2JxwJ3SPnlHZYEtYs_qsIMJ8diwVH7AfK8oKBdHWj9a-Yn2LLbxPWjbsQyoHXqNNQWJRxaZQKGQYBbdfU2jl48KX1aY43jAhc"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Why HomeHero */}
-        <section className="py-24 bg-white">
-          <div className="max-w-7xl mx-auto px-6 text-center mb-16">
-            <h2 className="text-3xl font-bold text-on-surface mb-4">Why join HomeHero?</h2>
-            <p className="text-on-surface-variant max-w-2xl mx-auto">We believe that great work happens when talented people are given the trust, tools, and freedom to excel.</p>
-          </div>
-          <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { icon: "favorite", title: "Trusted Care", desc: "We extend the same care we give our customers to our team." },
-              { icon: "auto_awesome", title: "Showcase your skills", desc: "We encourage you to use our platform to showcase your skills." },
-              { icon: "public", title: "Real Impact", desc: "We spotlight the importance of small yet talented service providers." }
-            ].map((item, idx) => (
-              <div key={idx} className="p-8 rounded-2xl bg-surface-container-lowest border border-outline-variant hover:border-primary-container hover:shadow-md transition-all group">
-                <div className="w-14 h-14 rounded-xl bg-secondary-container flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform">
-                  <span className="material-symbols-outlined text-3xl">{item.icon}</span>
-                </div>
-                <h3 className="text-xl font-bold text-on-surface mb-3">{item.title}</h3>
-                <p className="text-on-surface-variant text-sm leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Open Positions */}
-        <section className="py-24 bg-surface border-t border-outline-variant" id="openings">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-on-surface mb-4">Join Us As</h2>
-              <p className="text-on-surface-variant max-w-2xl mx-auto">Choose your expertise and start your journey as a HomeHero professional.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[
-                { title: "Gardener", desc: "Transform and maintain beautiful outdoor spaces.", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuBK1xX00HqqMa7yFb6nz1KnaCs6SXvOKPAhgLz-iSEBnxiu-MWcsLwpzASJvNVfSuppsD5El7K1joFP6O7Kwp5WMLCsgQN-upiMl_fWbJMA42Hf7reNyYi7tu-5b7lkLX4uiw8-QbL0Qkq0VUoUvXWPPTbTWCndjY0b7ghA8udZG9-Z64rvWSlfNcmEZ4-DWR2eOqDoBpvQvIa5qWgyCVsfPsmJH-kEpl214__Uov4FOnOckVnDYnvhV1d362IWec8Jk5D9h6decs4" },
-                { title: "Cleaner", desc: "Make homes sparkle with professional cleaning services.", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAyD7eRFXczTYrQw6ROcyNYfrdNVYnKa-vqb1Pv5HjwgwSUqvW-BqdqRxxtww1VL2-0j6TbrcDQ1LrX0MGkBmiPYzheaca94XUDNN9eG2K6AaI8_hw1b9TXdGC_khlW1NhIB8su0SmnxC5jR1zx2yh79sAZk315YJyOpLPlEHx7h0-vOifK7nZ4zR4IkkyzmiZ_N1TQ1tYTeNaC8NeEbZDqky9STWdCdR0PCrSsha6YQWmu5t2juj4aK_I7-gReY5hliU0sSJPQbmc" }
-              ].map((job, idx) => (
-                <div key={idx} className="bg-white rounded-2xl overflow-hidden border border-outline-variant hover:shadow-xl transition-all hover:-translate-y-1 group flex flex-col h-full">
-                  <div className="h-64 overflow-hidden">
-                    <img alt={job.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" src={job.img}/>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {benefits.map((benefit, index) => (
+                <div 
+                  key={index}
+                  className="bg-white rounded-xl p-6 shadow-sm border border-surface-container hover:border-primary/40 hover:shadow-md transition-all group"
+                >
+                  <div className="w-12 h-12 bg-primary-fixed rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <span className="material-symbols-outlined text-primary text-2xl">{benefit.icon}</span>
                   </div>
-                  <div className="p-6 flex flex-col flex-grow">
-                    <h3 className="text-xl font-bold text-on-surface mb-2">{job.title}</h3>
-                    <p className="text-on-surface-variant text-sm mb-6 leading-relaxed">{job.desc}</p>
-                    <button className="w-full py-3 bg-primary text-on-primary rounded-xl font-semibold hover:bg-primary-container transition-all mt-auto">
-                      Join as Pro
-                    </button>
-                  </div>
+                  <h3 className="text-lg font-bold text-on-surface mb-2">{benefit.title}</h3>
+                  <p className="text-sm text-on-surface-variant">{benefit.description}</p>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
+          </section>
+
+          {/* ===== OUR VALUES SECTION ===== */}
+          <section className="py-16 border-t border-outline-variant">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold text-on-surface mb-4">Our Core Values</h2>
+              <p className="text-on-surface-variant max-w-2xl mx-auto">
+                The principles that guide everything we do at HomeHero
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {values.map((value, index) => (
+                <div 
+                  key={index}
+                  className="bg-white rounded-xl p-6 shadow-sm border border-surface-container text-center hover:border-primary/40 hover:shadow-md transition-all group"
+                >
+                  <div className="w-16 h-16 bg-primary-fixed rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                    <span className="material-symbols-outlined text-primary text-3xl">{value.icon}</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-on-surface mb-2">{value.title}</h3>
+                  <p className="text-sm text-on-surface-variant">{value.description}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* ===== CTA SECTION ===== */}
+          <section className="py-16">
+            <div className="bg-primary rounded-3xl p-8 md:p-12 text-center relative overflow-hidden">
+              <div className="absolute top-0 right-0 opacity-10">
+                <span className="material-symbols-outlined text-9xl text-white">handshake</span>
+              </div>
+              <div className="relative z-10">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                  Ready to Make a Difference?
+                </h2>
+                <p className="text-emerald-100 text-lg mb-8 max-w-2xl mx-auto">
+                  Join us in building the future of home services and be part of something bigger.
+                </p>
+                <div className="flex flex-col sm:flex-row justify-center gap-4">
+                  <Link 
+                    to="/provider/register"
+                    className="bg-white text-primary px-10 py-4 rounded-full font-semibold text-lg hover:bg-gray-50 transition-all shadow-xl"
+                  >
+                    Get Started
+                  </Link>
+                  <Link 
+                    to="/contact"
+                    className="border border-white/30 text-white px-10 py-4 rounded-full font-semibold text-lg hover:bg-white/10 transition-all"
+                  >
+                    Talk to Us
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full py-12 bg-white border-t border-outline-variant">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between gap-8">
-          <div className="space-y-4">
-            <div className="text-xl font-black text-primary">HomeHero</div>
-            <p className="text-sm text-on-surface-variant">© 2026 HomeHero. Trusted care for your home.</p>
-          </div>
-          <div className="flex flex-wrap gap-12">
-            <div className="space-y-3">
-              <h4 className="font-bold text-on-surface text-sm uppercase tracking-wider">Company</h4>
-              <ul className="space-y-2">
-                <li><Link to="/about" className="text-on-surface-variant text-sm hover:text-primary">About Us</Link></li>
-                <li><Link to="/careers" className="text-primary font-bold text-sm">Careers</Link></li>
-              </ul>
+      {/* ===== FOOTER ===== */}
+      <footer className="bg-white border-t border-outline-variant mt-8">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="text-center md:text-left">
+              <Link to="/" className="text-lg font-bold text-primary">HomeHero</Link>
+              <p className="text-on-surface-variant text-sm mt-1">© 2024 HomeHero. All rights reserved.</p>
             </div>
-            <div className="space-y-3">
-              <h4 className="font-bold text-on-surface text-sm uppercase tracking-wider">Legal</h4>
-              <ul className="space-y-2">
-                <li><Link to="/privacy" className="text-on-surface-variant text-sm hover:text-primary">Privacy Policy</Link></li>
-                <li><Link to="/terms" className="text-on-surface-variant text-sm hover:text-primary">Terms of Service</Link></li>
-              </ul>
-            </div>
+            <nav className="flex flex-wrap justify-center gap-6">
+              <Link to="/services" className="text-on-surface-variant hover:text-primary transition-colors text-sm">Services</Link>
+              <Link to="/who-we-are" className="text-on-surface-variant hover:text-primary transition-colors text-sm">About us</Link>
+              <Link to="/careers" className="text-primary font-semibold text-sm">Careers</Link>
+              <Link to="/contact" className="text-on-surface-variant hover:text-primary transition-colors text-sm">Contact us</Link>
+              <Link to="/privacy" className="text-on-surface-variant hover:text-primary transition-colors text-sm">Privacy</Link>
+              <Link to="/terms" className="text-on-surface-variant hover:text-primary transition-colors text-sm">Terms</Link>
+            </nav>
           </div>
         </div>
       </footer>
