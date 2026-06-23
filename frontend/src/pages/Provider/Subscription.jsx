@@ -423,19 +423,19 @@ const Membership = () => {
           <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mt-1">Verified Provider</p>
         </div>
         <nav className="flex-1 px-4 space-y-2">
-          <Link to="/dashboard" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors">
+          <Link to="/provider/dashboard" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors">
             <span className="material-symbols-outlined">dashboard</span>
             <span className="text-sm font-bold">Dashboard</span>
           </Link>
-          <Link to="/requests" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors">
+          <Link to="/provider/requests" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors">
             <span className="material-symbols-outlined">pending_actions</span>
             <span className="text-sm font-bold">Requests</span>
           </Link>
-          <Link to="/jobs" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors">
+          <Link to="/provider/jobs" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors">
             <span className="material-symbols-outlined">assignment</span>
             <span className="text-sm font-bold">Jobs to do</span>
           </Link>
-          <Link to="/completed" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors">
+          <Link to="/provider/completed" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors">
             <span className="material-symbols-outlined">task_alt</span>
             <span className="text-sm font-bold">Completed jobs</span>
           </Link>
@@ -443,6 +443,13 @@ const Membership = () => {
             <span className="material-symbols-outlined">credit_card</span>
             <span className="text-sm font-bold">Subscription</span>
           </Link>
+          <Link 
+                      to="/sprofile" 
+                      className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors"
+                    >
+                      <span className="material-symbols-outlined">person</span>
+                      <span className="text-sm font-bold">Profile</span>
+                    </Link>
         </nav>
       </aside>
 

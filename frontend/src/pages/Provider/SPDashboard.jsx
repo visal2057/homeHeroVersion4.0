@@ -1,41 +1,69 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../components/AuthContext'; // Read directly from our new shared session context
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../components/AuthContext';
 
 const SPDashboard = () => {
-  const { user, logout } = useAuth(); // Destructure state variables and utility lifecycle metrics
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [isOnline, setIsOnline] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Fallback structural details for user attributes if fields are empty
-  const providerName = user?.name || user?.username || "Suresh Fonseka";
+  const providerName = user?.full_name || user?.name || user?.username || "Suresh Fonseka";
   const providerAvatar = user?.avatarUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80";
+
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <div className="bg-background text-on-surface">
-      {/* Sidebar */}
+      {/* ===== SIDEBAR ===== */}
       <aside className="fixed left-0 top-0 h-full hidden lg:flex flex-col w-64 border-r border-slate-200 bg-white z-50">
         <div className="px-6 py-8">
-          <span className="text-xl font-black text-emerald-600">HomeHero</span>
+          <Link to="/provider/dashboard" className="text-xl font-black text-emerald-600">HomeHero</Link>
           <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mt-1">Verified Provider</p>
         </div>
         <nav className="flex-1 px-4 space-y-2">
-          <a href="#" className="flex items-center gap-3 px-4 py-3 text-emerald-700 font-semibold border-r-4 border-emerald-600 bg-emerald-50 rounded-lg">
+          {/* Dashboard - Active */}
+          <Link 
+            to="/provider/dashboard" 
+            className="flex items-center gap-3 px-4 py-3 text-emerald-700 font-semibold border-r-4 border-emerald-600 bg-emerald-50 rounded-lg"
+          >
             <span className="material-symbols-outlined">dashboard</span>
             <span className="text-sm font-bold">Dashboard</span>
-          </a>
-          <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors">
+          </Link>
+          
+          {/* Requests */}
+          <Link 
+            to="/provider/requests" 
+            className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors"
+          >
             <span className="material-symbols-outlined">pending_actions</span>
             <span className="text-sm font-bold">Requests</span>
-          </a>
-          <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors">
+          </Link>
+          
+          {/* Jobs to do */}
+          <Link 
+            to="/provider/jobs" 
+            className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors"
+          >
             <span className="material-symbols-outlined">assignment</span>
             <span className="text-sm font-bold">Jobs to do</span>
-          </a>
-          <a href="#" className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors">
+          </Link>
+          
+          {/* Completed jobs */}
+          <Link 
+            to="/provider/completed" 
+            className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors"
+          >
             <span className="material-symbols-outlined">task_alt</span>
             <span className="text-sm font-bold">Completed jobs</span>
-          </a>
+          </Link>
+          
+          {/* Subscription */}
           <Link 
             to="/provider/subscription" 
             className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors"
@@ -43,18 +71,43 @@ const SPDashboard = () => {
             <span className="material-symbols-outlined">credit_card</span>
             <span className="text-sm font-bold">Subscription</span>
           </Link>
+          
+          {/* Profile */}
+          <Link 
+            to="/sprofile" 
+            className="flex items-center gap-3 px-4 py-3 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700 rounded-lg transition-colors"
+          >
+            <span className="material-symbols-outlined">person</span>
+            <span className="text-sm font-bold">Profile</span>
+          </Link>
         </nav>
+        
+        {/* Logout Button */}
+        <div className="p-4 border-t border-slate-200">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors w-full"
+          >
+            <span className="material-symbols-outlined">logout</span>
+            <span className="text-sm font-bold">Logout</span>
+          </button>
+        </div>
       </aside>
 
-      {/* Main Content */}
+      {/* ===== MAIN CONTENT ===== */}
       <main className="lg:ml-64 min-h-screen">
-        {/* Header */}
+        
+        {/* ===== HEADER ===== */}
         <header className="sticky top-0 z-40 w-full flex justify-between items-center px-6 py-3 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-black text-slate-800">Dashboard</h1>
             <div className="hidden md:flex relative items-center">
               <span className="material-symbols-outlined absolute left-3 text-slate-400">search</span>
-              <input className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-full text-sm focus:ring-2 focus:ring-emerald-500 w-64 outline-none" placeholder="Search tasks or clients..." type="text" />
+              <input 
+                className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-full text-sm focus:ring-2 focus:ring-emerald-500 w-64 outline-none" 
+                placeholder="Search tasks or clients..." 
+                type="text" 
+              />
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -66,36 +119,39 @@ const SPDashboard = () => {
             </button>
             <div className="h-8 w-px bg-slate-200 mx-2"></div>
             
-            {/* Account Bubble Dropdown Component */}
+            {/* ===== ACCOUNT DROPDOWN ===== */}
             <div className="relative">
               <button 
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center gap-3 focus:outline-none cursor-pointer hover:opacity-90 transition-opacity"
               >
                 <span className="text-sm font-bold text-slate-700 hidden sm:inline-block">{providerName}</span>
-                <img alt="User avatar" className="w-8 h-8 rounded-full border border-slate-200 object-cover" src={providerAvatar} />
+                <img 
+                  alt="User avatar" 
+                  className="w-8 h-8 rounded-full border border-slate-200 object-cover" 
+                  src={providerAvatar} 
+                  onError={(e) => {
+                    e.target.src = `https://ui-avatars.com/api/?name=${providerName.replace(' ', '+')}&background=006948&color=fff&size=80`;
+                  }}
+                />
               </button>
 
-              {/* Dropdown Options Menu */}
+              {/* Dropdown Menu */}
               {isDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)}></div>
-                  
                   <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-1 z-20 transition-all">
-                    <a 
-                      href="#profile" 
+                    <Link 
+                      to="/sprofile" 
                       onClick={() => setIsDropdownOpen(false)}
                       className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-medium transition-colors"
                     >
                       <span className="material-symbols-outlined text-base text-slate-400">person</span>
                       Profile Settings
-                    </a>
+                    </Link>
                     <hr className="border-slate-100" />
                     <button 
-                      onClick={() => {
-                        setIsDropdownOpen(false);
-                        logout(); // Seamlessly clears session state data maps and redirects
-                      }}
+                      onClick={handleLogout}
                       className="w-full text-left flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 font-semibold transition-colors cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-base text-red-400">logout</span>
@@ -108,12 +164,21 @@ const SPDashboard = () => {
           </div>
         </header>
 
+        {/* ===== DASHBOARD CONTENT ===== */}
         <div className="p-6 space-y-6">
-          {/* Profile Card Summary Banner */}
+          
+          {/* ===== PROFILE CARD ===== */}
           <div className="flex flex-col md:flex-row md:items-center justify-between bg-white p-6 rounded-2xl border border-slate-200 shadow-sm gap-6">
             <div className="flex items-center gap-5">
               <div className="relative">
-                <img alt={providerName} className="w-20 h-20 rounded-full object-cover border-4 border-emerald-50 shadow-inner" src={providerAvatar} />
+                <img 
+                  alt={providerName} 
+                  className="w-20 h-20 rounded-full object-cover border-4 border-emerald-50 shadow-inner" 
+                  src={providerAvatar} 
+                  onError={(e) => {
+                    e.target.src = `https://ui-avatars.com/api/?name=${providerName.replace(' ', '+')}&background=006948&color=fff&size=80`;
+                  }}
+                />
                 <div className={`absolute bottom-1 right-1 w-5 h-5 border-2 border-white rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-gray-400'}`}></div>
               </div>
               <div>
@@ -131,15 +196,18 @@ const SPDashboard = () => {
             </div>
             <button 
               onClick={() => setIsOnline(!isOnline)}
-              className={`px-8 py-3 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 ${isOnline ? 'bg-slate-500 hover:bg-slate-600' : 'bg-emerald-600 hover:bg-emerald-700'} text-white`}
+              className={`px-8 py-3 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 ${
+                isOnline ? 'bg-slate-500 hover:bg-slate-600' : 'bg-emerald-600 hover:bg-emerald-700'
+              } text-white`}
             >
               <span className="material-symbols-outlined text-sm">{isOnline ? 'power_settings_new' : 'online_prediction'}</span>
               {isOnline ? 'Go Offline' : 'Go Online'}
             </button>
           </div>
 
-          {/* Metrics Overview Grid */}
+          {/* ===== METRICS ===== */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Performance Card */}
             <div className="lg:col-span-4 p-6 rounded-xl flex flex-col justify-between shadow-sm border border-emerald-100 bg-white">
               <h2 className="text-lg font-bold text-slate-900">Performance</h2>
               <div className="mt-8 flex items-end justify-between">
@@ -161,57 +229,95 @@ const SPDashboard = () => {
               <p className="text-xs text-emerald-600 font-semibold mt-2">Top 5% of providers this month</p>
             </div>
 
+            {/* Spotlight Card */}
             <div className="lg:col-span-8 bg-emerald-600 p-6 rounded-xl text-white relative overflow-hidden shadow-md flex flex-col justify-between">
               <div>
-                <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest text-white w-fit">Category Spotlight</span>
+                <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest text-white w-fit">
+                  Category Spotlight
+                </span>
                 <h2 className="text-3xl font-bold mt-4 max-w-md">Featured Providers in Handywork</h2>
+                <p className="text-emerald-100 mt-2 text-sm">Connect with top-rated professionals in your area</p>
+              </div>
+              <div className="mt-4">
+                <button 
+                  onClick={() => navigate('/explore/handiwork')}
+                  className="bg-white text-emerald-700 px-6 py-2 rounded-lg font-bold text-sm hover:bg-emerald-50 transition-colors"
+                >
+                  View All
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Customer Booking Requests List Section */}
+          {/* ===== NEW REQUESTS ===== */}
           <div className="space-y-4">
-            <h3 className="text-lg font-bold text-slate-900">New Requests</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900">New Requests</h3>
+              <Link 
+                to="/provider/requests" 
+                className="text-sm text-emerald-600 font-semibold hover:underline"
+              >
+                View All
+              </Link>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Request Card 1 */}
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start">
                   <div className="flex gap-3">
-                    <img alt="Sarah J." className="w-10 h-10 rounded-full object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" />
+                    <img 
+                      alt="Sarah J." 
+                      className="w-10 h-10 rounded-full object-cover" 
+                      src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&q=80" 
+                    />
                     <div>
                       <p className="text-sm font-bold text-slate-900">Sarah Jenkins</p>
                       <p className="text-xs text-slate-500">2.4 miles away</p>
                     </div>
                   </div>
+                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold">Urgent</span>
                 </div>
                 <div className="mt-4">
                   <p className="text-sm font-semibold text-slate-700">Door Frame Alignment</p>
                   <p className="text-xs text-slate-500 mt-1">Main entrance door is sticking at the bottom after recent rainfall transitions.</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-5">
-                  <button className="py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors">Accept</button>
-                  <button className="py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors">Decline</button>
+                  <button className="py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors">
+                    Accept
+                  </button>
+                  <button className="py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors">
+                    Decline
+                  </button>
                 </div>
               </div>
 
               {/* Request Card 2 */}
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start">
                   <div className="flex gap-3">
-                    <img alt="Michael R." className="w-10 h-10 rounded-full object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" />
+                    <img 
+                      alt="Michael R." 
+                      className="w-10 h-10 rounded-full object-cover" 
+                      src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&q=80" 
+                    />
                     <div>
                       <p className="text-sm font-bold text-slate-900">Michael Ross</p>
                       <p className="text-xs text-slate-500">0.8 miles away</p>
                     </div>
                   </div>
+                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-bold">New</span>
                 </div>
                 <div className="mt-4">
                   <p className="text-sm font-semibold text-slate-700">TV Wall Mounting</p>
                   <p className="text-xs text-slate-500 mt-1">Need a 65" OLED mounted clean on a target structural brick face wall.</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-5">
-                  <button className="py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors">Accept</button>
-                  <button className="py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors">Decline</button>
+                  <button className="py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition-colors">
+                    Accept
+                  </button>
+                  <button className="py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors">
+                    Decline
+                  </button>
                 </div>
               </div>
             </div>
