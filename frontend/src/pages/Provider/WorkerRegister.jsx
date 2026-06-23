@@ -423,24 +423,7 @@ const WorkerRegister = () => {
       <CenteredToast show={Boolean(error)} type="error" message={error} onClose={() => setError('')} />
       <CenteredToast show={Boolean(success)} type="success" message={success} onClose={() => setSuccess('')} />
 
-      {/* ===== HEADER ===== */}
-      <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-outline-variant shadow-sm h-16">
-        <div className="flex justify-between items-center px-4 md:px-8 h-full max-w-7xl mx-auto">
-          <div className="flex items-center gap-2">
-            <Link to="/" className="text-xl font-black tracking-tighter text-primary">HomeHero</Link>
-            <div className="h-6 w-px bg-outline-variant mx-2 hidden sm:block"></div>
-            <span className="text-sm font-medium text-on-surface-variant hidden sm:block">Provider Registration</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-on-surface-variant hidden md:inline">
-              Step {step}/2
-            </span>
-            <Link to="/login" className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">
-              Login
-            </Link>
-          </div>
-        </div>
-      </header>
+    
 
       {/* ===== MAIN CONTENT ===== */}
       <main className="flex-grow pt-20 pb-12 px-4 md:px-6">
